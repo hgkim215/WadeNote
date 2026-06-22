@@ -1,0 +1,66 @@
+name: WadeNote
+options:
+  bundleIdPrefix: com.wadenote
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: "NO"
+    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+targets:
+  WadeNote:
+    type: application
+    platform: iOS
+    sources:
+      - path: WadeNote
+    info:
+      path: WadeNote/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSFaceIDUsageDescription: "WadeNote 잠금 해제에 Face ID를 사용합니다."
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wadenote.app
+        INFOPLIST_KEY_CFBundleDisplayName: WadeNote
+  WadeNoteTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: WadeNoteTests
+    dependencies:
+      - target: WadeNote
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wadenote.tests
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        GENERATE_INFOPLIST_FILE: "YES"
+  WadeNoteStoreTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: WadeNoteStoreTests
+    dependencies:
+      - target: WadeNote
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wadenote.storetests
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        GENERATE_INFOPLIST_FILE: "YES"
+schemes:
+  WadeNote:
+    build:
+      targets:
+        WadeNote: all
+        WadeNoteTests: [test]
+        WadeNoteStoreTests: [test]
+    test:
+      config: Debug
+      disableMainThreadChecker: true
+      targets:
+        - WadeNoteTests
+        - WadeNoteStoreTests
