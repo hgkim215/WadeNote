@@ -47,10 +47,32 @@ xcodebuild test -scheme WadeNote \
 
 ## 알려진 환경 이슈 / 수동 단계
 
-1. **CloudKit 동기화**: 기본 런타임은 로컬 SwiftData 저장소를 사용합니다. iCloud 동기화를 켜려면
-   ① Xcode에서 iCloud > CloudKit capability와 `iCloud.com.wadenote.app` 컨테이너 추가 + 개발팀 서명,
-   ② `WadeNoteApp.makeContainerWithFallback()`를 `try makeContainer(inMemory: false)`로 교체.
-   엔타이틀먼트 없이 CloudKit 컨테이너를 만들면 미러링이 런타임에 크래시하므로 기본값은 로컬입니다.
+1. **CloudKit 동기화 (스캐폴딩 완료, 활성화는 개발팀 서명 필요)**
+
+   코드·설정은 모두 준비돼 있습니다:
+   - `WadeNote/WadeNote.entitlements` — iCloud(CloudKit) 서비스 + `iCloud.com.wadenote.app` 컨테이너 + `aps-environment`(푸시 동기화).
+   - `Info.plist` `UIBackgroundModes: [remote-notification]` — 백그라운드 동기화 푸시.
+   - 모델은 CloudKit 호환(모든 관계 옵셔널·기본값·unique 미사용).
+   - 런타임 컨테이너는 `WADENOTE_CLOUDKIT` 컴파일 플래그로 게이트 — 기본은 로컬, 플래그가 켜지면 CloudKit private DB로 동기화.
+
+   **활성화 절차** (유료 Apple Developer 계정 필요) — 단계별 상세 가이드: [`docs/cloudkit-setup.md`](docs/cloudkit-setup.md)
+   1. `project.yml`의 WadeNote 타깃 `settings.base`에서 두 줄의 주석을 해제하고 본인 Team ID를 넣습니다:
+      ```yaml
+      DEVELOPMENT_TEAM: "YOUR_TEAM_ID"
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WADENOTE_CLOUDKIT"
+      ```
+      또한 `CODE_SIGN_IDENTITY: "-"` / `CODE_SIGNING_REQUIRED: "NO"`를 자동 서명으로 바꿉니다
+      (`CODE_SIGN_STYLE: Automatic`).
+   2. 번들/컨테이너 ID가 본인 소유가 아니면 `com.wadenote.app` → 본인 역도메인으로 바꾸고,
+      `WadeNote.entitlements`의 컨테이너 ID와 `WadeNoteApp.cloudKitContainerID` 상수도 같이 맞춥니다.
+   3. `xcodegen generate` 후 Xcode에서 Signing & Capabilities에 iCloud > CloudKit이 잡혔는지 확인.
+   4. 시뮬레이터/기기 **설정 > Apple 계정에 로그인**(iCloud) 후 앱 실행.
+   5. 두 기기(또는 시뮬레이터 2대)에서 항목을 추가해 동기화를 확인. 첫 실행 시 SwiftData가
+      CloudKit **Development** 스키마를 자동 생성하며, 출시 전 CloudKit 대시보드에서 스키마를
+      Production으로 승격합니다.
+
+   엔타이틀먼트가 제대로 프로비저닝되지 않은 상태(예: 팀 없는 시뮬레이터)에서 CloudKit 컨테이너를
+   만들면 미러링이 런타임에 크래시하므로, 플래그가 꺼진 기본 빌드는 로컬 저장소를 씁니다.
 
 2. **SwiftData 단위 테스트 크래시 (이 환경 한정)**: 현재 머신의 Xcode 26.5 / iOS 26.5 시뮬레이터에서는
    호스팅된 XCTest 번들 안에서 SwiftData `save()`가 `EXC_BREAKPOINT`로 트랩합니다.

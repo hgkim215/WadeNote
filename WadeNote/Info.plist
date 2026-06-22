@@ -20,6 +20,10 @@
 	<string>1</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>WadeNote 잠금 해제에 Face ID를 사용합니다.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
