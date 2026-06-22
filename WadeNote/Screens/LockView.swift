@@ -13,9 +13,8 @@ struct LockView: View {
                                          startPoint: .topLeading, endPoint: .bottomTrailing))
                     .frame(width: 92, height: 92)
                     .overlay(
-                        Image(systemName: "lock.doc.fill")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.white)
+                        WadeNoteGlyph()
+                            .frame(width: 60, height: 60)
                     )
                     .shadow(color: Color.actionBlue.opacity(0.26), radius: 20, y: 16)
                 Text("WadeNote")
