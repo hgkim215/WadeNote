@@ -4,8 +4,10 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Item.updatedAt, order: .reverse) private var items: [Item]
+    @Environment(\.scenePhase) private var scenePhase
     @State private var search = ""
     @State private var showingAdd = false
+    @State private var sync = SyncStatusMonitor()
     @AppStorage("didShowADPNotice") private var didShowADPNotice = false
 
     private var filtered: [Item] {
@@ -30,7 +32,8 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                if !didShowADPNotice {
+                syncBanner
+                if didShowADPNotice == false && sync.status == .synced {
                     adpNotice
                 }
                 if !favorites.isEmpty {
@@ -69,7 +72,56 @@ struct HomeView: View {
                 }
             }
             .sheet(isPresented: $showingAdd) { ItemEditView(mode: .create) }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { sync.refresh() }
+            }
         }
+    }
+
+    @ViewBuilder
+    private var syncBanner: some View {
+        switch sync.status {
+        case .synced:
+            statusPill(text: "iCloud 동기화됨", systemImage: "checkmark.icloud.fill",
+                       tint: Color(hex: "1FB866"))
+        case .localOnly:
+            statusPill(text: "이 기기에만 저장됨", systemImage: "iphone",
+                       tint: Color.secondaryText)
+        case .needsLogin:
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "exclamationmark.icloud.fill")
+                    .foregroundStyle(Color(hex: "E8A317"))
+                    .font(.system(size: 18))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("iCloud에 로그인되어 있지 않습니다")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.primaryText)
+                    Text("동기화가 꺼져 있어 이 기기에만 저장됩니다. 설정 앱 > Apple 계정에 로그인하면 자동으로 동기화됩니다.")
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(Color.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .background(Color(hex: "E8A317").opacity(0.12),
+                        in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color(hex: "E8A317").opacity(0.3)))
+            .padding(.horizontal, 22)
+            .padding(.top, 8)
+        }
+    }
+
+    private func statusPill(text: String, systemImage: String, tint: Color) -> some View {
+        HStack {
+            Label(text, systemImage: systemImage)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(tint)
+            Spacer()
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 8)
     }
 
     private var adpNotice: some View {
