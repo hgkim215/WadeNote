@@ -15,10 +15,12 @@ struct RootView: View {
             .onChange(of: scenePhase) { _, phase in
                 switch phase {
                 case .background:
-                    coordinator.engageLock()   // 완전히 이탈할 때만 잠금(스냅샷도 가림)
+                    coordinator.engageLock()   // 완전히 이탈할 때 잠금
+                case .inactive:
+                    coordinator.engageCover()  // 앱 스위처/제어센터 — 스냅샷 가림(잠그진 않음)
                 case .active:
                     Task { await coordinator.authenticateIfLocked() }
-                default:
+                @unknown default:
                     break
                 }
             }

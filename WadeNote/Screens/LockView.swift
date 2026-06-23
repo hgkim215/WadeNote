@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct LockView: View {
+    /// 화면 노출 시 Face ID를 자동 실행할지. 가림막(앱 스위처) 모드에선 false.
+    var autoAuthenticate: Bool = true
     let onUnlock: () async -> Void
 
     var body: some View {
@@ -66,6 +68,6 @@ struct LockView: View {
                 .padding(.bottom, 46)
             }
         }
-        .task { await onUnlock() }
+        .task { if autoAuthenticate { await onUnlock() } }
     }
 }
