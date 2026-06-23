@@ -7,6 +7,7 @@ struct ItemDetailView: View {
     @Environment(ClipboardHolder.self) private var clip
     @Environment(AttachmentHolder.self) private var attachments
     @State private var toast: String?
+    @State private var photoSelection: PhotoSelection?
 
     private var store: ItemStore { ItemStore(context: context) }
     private var sortedFields: [Field] { item.orderedFields }
@@ -61,22 +62,7 @@ struct ItemDetailView: View {
                 .padding(.horizontal, 22)
                 .padding(.top, 22)
 
-                if !item.attachmentIDs.isEmpty {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 90))], spacing: 10) {
-                        ForEach(item.attachmentIDs, id: \.self) { id in
-                            if let data = try? attachments.store.load(id: id),
-                               let ui = UIImage(data: data) {
-                                Image(uiImage: ui)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 90, height: 90)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 22)
-                    .padding(.top, 16)
-                }
+                photosSection
             }
             .padding(.bottom, 24)
         }
@@ -108,5 +94,42 @@ struct ItemDetailView: View {
             }
         }
         .toast($toast)
+        .fullScreenCover(item: $photoSelection) { sel in
+            PhotoViewerView(images: sel.images, startIndex: sel.index)
+        }
     }
+
+    /// 첨부 사진 그리드 — 탭하면 전체 화면 뷰어로 확대해서 본다.
+    @ViewBuilder
+    private var photosSection: some View {
+        let photos: [UIImage] = item.attachmentIDs.compactMap { id in
+            guard let data = try? attachments.store.load(id: id) else { return nil }
+            return UIImage(data: data)
+        }
+        if !photos.isEmpty {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90))], spacing: 10) {
+                ForEach(Array(photos.enumerated()), id: \.offset) { idx, ui in
+                    Button {
+                        photoSelection = PhotoSelection(index: idx, images: photos)
+                    } label: {
+                        Image(uiImage: ui)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 90, height: 90)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 22)
+            .padding(.top, 16)
+        }
+    }
+}
+
+/// 전체 화면 사진 뷰어에 넘길 선택 정보.
+private struct PhotoSelection: Identifiable {
+    let id = UUID()
+    let index: Int
+    let images: [UIImage]
 }

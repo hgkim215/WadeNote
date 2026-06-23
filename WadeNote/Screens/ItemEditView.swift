@@ -17,6 +17,8 @@ struct ItemEditView: View {
     @State private var draft: [Field] = []
     @State private var working: Item?
     @State private var pickerItem: PhotosPickerItem?
+    @State private var attachmentIDs: [String] = []
+    @State private var originalAttachmentIDs: [String] = []
 
     private var store: ItemStore { ItemStore(context: context) }
     private var isCreate: Bool { if case .create = mode { true } else { false } }
@@ -45,25 +47,35 @@ struct ItemEditView: View {
                     }
                     .tint(Color.actionBlue)
                 }
-                if working != nil {
-                    Section("사진") {
-                        PhotosPicker(selection: $pickerItem, matching: .images) {
-                            Label("사진 추가", systemImage: "photo")
+                Section("사진") {
+                    if !attachmentIDs.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach(attachmentIDs, id: \.self) { id in
+                                    attachmentThumb(id)
+                                }
+                            }
+                            .padding(.vertical, 4)
                         }
-                        .onChange(of: pickerItem) { _, newItem in
-                            guard let newItem else { return }
-                            Task { await attach(newItem) }
-                        }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    }
+                    PhotosPicker(selection: $pickerItem, matching: .images) {
+                        Label("사진 추가", systemImage: "photo")
+                    }
+                    .onChange(of: pickerItem) { _, newItem in
+                        guard let newItem else { return }
+                        Task { await attach(newItem) }
                     }
                 }
             }
             .scrollContentBackground(.hidden)
             .background(Color.appBackground)
             .tint(Color.actionBlue)
+            .dismissKeyboardOnTap()
             .navigationTitle(isCreate ? "추가" : "편집")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("취소") { cancelEdit() } }
                 ToolbarItem(placement: .confirmationAction) { Button("저장") { commit() } }
             }
             .onAppear(perform: load)
@@ -104,16 +116,14 @@ struct ItemEditView: View {
     private func inputField(_ field: Binding<Field>) -> some View {
         let kind = field.wrappedValue.kind
         let style = inputStyle(for: kind)
-        Group {
-            if field.wrappedValue.isMasked {
-                SecureField(field.wrappedValue.label, text: field.value)
-            } else {
-                TextField(field.wrappedValue.label, text: field.value)
-            }
+        if field.wrappedValue.isMasked {
+            SecretFieldEditor(label: field.wrappedValue.label, value: field.value, keyboard: style.keyboard)
+        } else {
+            TextField(field.wrappedValue.label, text: field.value)
+                .keyboardType(style.keyboard)
+                .textInputAutocapitalization(style.autocap)
+                .autocorrectionDisabled(style.disableAutocorrect)
         }
-        .keyboardType(style.keyboard)
-        .textInputAutocapitalization(style.autocap)
-        .autocorrectionDisabled(style.disableAutocorrect)
     }
 
     private func inputStyle(for kind: FieldKind) -> (keyboard: UIKeyboardType, autocap: TextInputAutocapitalization, disableAutocorrect: Bool) {
@@ -154,9 +164,43 @@ struct ItemEditView: View {
             title = item.title
             draft = item.orderedFields
             working = item
+            attachmentIDs = item.attachmentIDs
+            originalAttachmentIDs = item.attachmentIDs
         } else if draft.isEmpty {
             draft = Template.makeFields(for: type)
         }
+    }
+
+    @ViewBuilder
+    private func attachmentThumb(_ id: String) -> some View {
+        if let data = try? attachments.store.load(id: id), let ui = UIImage(data: data) {
+            Image(uiImage: ui)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 76, height: 76)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(alignment: .topTrailing) {
+                    Button { removeAttachment(id) } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.white, .black.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(4)
+                }
+        }
+    }
+
+    private func removeAttachment(_ id: String) {
+        withAnimation { attachmentIDs.removeAll { $0 == id } }
+    }
+
+    /// 취소 시 이번 편집에서 새로 추가한 사진 파일만 정리한다(기존 사진은 보존).
+    private func cancelEdit() {
+        for id in attachmentIDs where !originalAttachmentIDs.contains(id) {
+            try? attachments.store.delete(id: id)
+        }
+        dismiss()
     }
 
     private func commit() {
@@ -183,6 +227,11 @@ struct ItemEditView: View {
                 context.insert(f)
             }
         }
+        // 사진 반영 + 이번 편집에서 삭제된 사진 파일 정리
+        item.attachmentIDs = attachmentIDs
+        for id in originalAttachmentIDs where !attachmentIDs.contains(id) {
+            try? attachments.store.delete(id: id)
+        }
         try? store.save()
         dismiss()
     }
@@ -190,8 +239,7 @@ struct ItemEditView: View {
     private func attach(_ pickerItem: PhotosPickerItem) async {
         guard let data = try? await pickerItem.loadTransferable(type: Data.self),
               let id = try? attachments.store.save(data) else { return }
-        working?.attachmentIDs.append(id)
-        try? store.save()
+        attachmentIDs.append(id)
     }
 }
 
@@ -237,6 +285,39 @@ private struct DateFieldEditor: View {
                 date = parsed
                 isSet = true
             }
+        }
+    }
+}
+
+/// 비밀값 입력 필드 — 기본은 가려서(SecureField) 입력하고, 오른쪽 눈 버튼으로 보기/숨기기 전환.
+private struct SecretFieldEditor: View {
+    let label: String
+    @Binding var value: String
+    let keyboard: UIKeyboardType
+    @State private var revealed = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Group {
+                if revealed {
+                    TextField(label, text: $value)
+                } else {
+                    SecureField(label, text: $value)
+                }
+            }
+            .keyboardType(keyboard)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled(true)
+
+            Button {
+                Haptics.tap()
+                revealed.toggle()
+            } label: {
+                Image(systemName: revealed ? "eye.fill" : "eye")
+                    .contentTransition(.symbolEffect(.replace))
+                    .foregroundStyle(revealed ? Color.actionBlue : Color.secondaryText)
+            }
+            .buttonStyle(.plain)
         }
     }
 }
