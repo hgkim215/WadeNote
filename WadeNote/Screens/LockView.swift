@@ -6,7 +6,7 @@ struct LockView: View {
     var body: some View {
         ZStack {
             // 따뜻한 뉴트럴 그라데이션 + 상단 블루 배경광
-            LinearGradient(colors: [Color(hex: "fbfaf7"), Color(hex: "edebe5")],
+            LinearGradient(colors: [Color.lockBgTop, Color.lockBgBottom],
                            startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
             RadialGradient(colors: [Color.actionBlue.opacity(0.13), .clear],
@@ -49,7 +49,7 @@ struct LockView: View {
                             .foregroundStyle(Color.actionBlue)
                         Text("기기를 바라보면 자동으로 열려요")
                             .font(.system(size: 12.5))
-                            .foregroundStyle(Color(hex: "a0a0ac"))
+                            .foregroundStyle(Color.tertiaryText)
                     }
                     Button { Task { await onUnlock() } } label: {
                         Text("패스코드 입력")
@@ -58,8 +58,8 @@ struct LockView: View {
                             .padding(.horizontal, 22)
                             .padding(.vertical, 11)
                             .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 14))
-                            .shadow(color: Color(hex: "141428").opacity(0.08), radius: 3, x: 0, y: 1)
-                            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.black.opacity(0.05)))
+                            .shadow(color: Color.cardShadow, radius: 4, x: 0, y: 2)
+                            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.cardBorder))
                     }
                     .buttonStyle(.plain)
                 }

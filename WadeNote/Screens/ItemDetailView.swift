@@ -31,7 +31,7 @@ struct ItemDetailView: View {
                     Button { try? store.toggleFavorite(item) } label: {
                         Image(systemName: item.isFavorite ? "star.fill" : "star")
                             .font(.system(size: 18))
-                            .foregroundStyle(item.isFavorite ? Color.favoriteStar : Color(hex: "c4c4cc"))
+                            .foregroundStyle(item.isFavorite ? Color.favoriteStar : Color.tertiaryText)
                     }
                     .buttonStyle(.plain)
                 }
@@ -50,8 +50,8 @@ struct ItemDetailView: View {
                     }
                 }
                 .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 16))
-                .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.black.opacity(0.04)))
-                .shadow(color: Color(hex: "141428").opacity(0.10), radius: 16, x: 0, y: 8)
+                .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.cardBorder))
+                .shadow(color: Color.cardShadow, radius: 16, x: 0, y: 8)
                 .padding(.horizontal, 22)
                 .padding(.top, 22)
 

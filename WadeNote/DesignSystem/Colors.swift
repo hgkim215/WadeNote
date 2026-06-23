@@ -25,12 +25,33 @@ extension Color {
                    b: (b * 255).rounded() / 255)
     }
 
-    static let appBackground = Color(hex: "f4f2ee")
-    static let cardSurface = Color.white
-    static let primaryText = Color(hex: "15151a")
-    static let secondaryText = Color(hex: "8a8a92")
-    static let actionBlue = Color(hex: "2D5BFF")
-    static let favoriteStar = Color(hex: "FFB300")
+    /// 라이트/다크에 따라 두 UIColor 중 하나를 고르는 동적 색.
+    static func dynamic(light: UIColor, dark: UIColor) -> Color {
+        Color(UIColor { $0.userInterfaceStyle == .dark ? dark : light })
+    }
+    /// hex 두 개로 만드는 적응형 색.
+    static func adaptive(light: String, dark: String) -> Color {
+        dynamic(light: UIColor(Color(hex: light)), dark: UIColor(Color(hex: dark)))
+    }
+
+    // 표면/텍스트 (시안 v2의 라이트/다크 토큰)
+    static let appBackground  = adaptive(light: "f4f2ee", dark: "0c0c0e")
+    static let cardSurface    = adaptive(light: "ffffff", dark: "17171b")
+    static let primaryText    = adaptive(light: "15151a", dark: "f5f5f7")
+    static let secondaryText  = adaptive(light: "8a8a92", dark: "9b9ba3")
+    static let tertiaryText   = adaptive(light: "a0a0ac", dark: "76767e")
+    static let actionBlue     = adaptive(light: "2D5BFF", dark: "5A86FF")
+    static let favoriteStar   = Color(hex: "FFB300")
+
+    // 헤어라인 보더·카드 그림자 (모드별 적응)
+    static let cardBorder = dynamic(light: UIColor.black.withAlphaComponent(0.05),
+                                    dark: UIColor.white.withAlphaComponent(0.08))
+    static let cardShadow = dynamic(light: UIColor(Color(hex: "141428")).withAlphaComponent(0.10),
+                                    dark: UIColor.black.withAlphaComponent(0.55))
+
+    // 잠금 화면 배경 그라데이션 끝점
+    static let lockBgTop    = adaptive(light: "fbfaf7", dark: "1b1b21")
+    static let lockBgBottom = adaptive(light: "edebe5", dark: "0c0c0e")
 }
 
 extension ItemType {

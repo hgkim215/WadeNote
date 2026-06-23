@@ -53,6 +53,7 @@ struct HomeView: View {
             }
             .toolbar(.hidden, for: .navigationBar)
 
+
             .sheet(isPresented: $showingAdd) { ItemEditView(mode: .create) }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { sync.refresh() }
@@ -108,15 +109,15 @@ struct HomeView: View {
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 3)
-        .background(Color.black.opacity(0.04), in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.black.opacity(0.05)))
+        .background(Color.primaryText.opacity(0.05), in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.cardBorder))
     }
 
     private var searchBar: some View {
         HStack(spacing: 7) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Color(hex: "a0a0ac"))
+                .foregroundStyle(Color.tertiaryText)
             TextField("검색", text: $search)
                 .font(.system(size: 15))
                 .tint(Color.actionBlue)
@@ -124,8 +125,8 @@ struct HomeView: View {
         .padding(.horizontal, 12)
         .frame(height: 40)
         .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.black.opacity(0.05)))
-        .shadow(color: Color(hex: "141428").opacity(0.04), radius: 2, x: 0, y: 1)
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.cardBorder))
+        .shadow(color: Color.cardShadow, radius: 3, x: 0, y: 1)
         .padding(.horizontal, 22)
         .padding(.top, 16)
     }
@@ -160,8 +161,8 @@ struct HomeView: View {
                 }
             }
             .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.black.opacity(0.04)))
-            .shadow(color: Color(hex: "141428").opacity(0.10), radius: 16, x: 0, y: 8)
+            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.cardBorder))
+            .shadow(color: Color.cardShadow, radius: 16, x: 0, y: 8)
             .padding(.horizontal, 22)
         }
     }
@@ -302,7 +303,7 @@ struct HomeView: View {
             Text(title.uppercased())
                 .font(.system(size: 11, weight: .semibold))
                 .tracking(1.4)
-                .foregroundStyle(Color(hex: "a0a0ac"))
+                .foregroundStyle(Color.tertiaryText)
             Spacer()
         }
         .padding(.horizontal, 24)
