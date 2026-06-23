@@ -21,20 +21,31 @@ struct FieldRow: View {
                 Text(display)
                     .font(.system(size: 16, design: isSecret ? .monospaced : .default))
                     .foregroundStyle(Color.primaryText)
+                    .contentTransition(.numericText())
+                    .animation(.snappy, value: revealed)
             }
             Spacer()
             if isSecret {
-                Button { revealed.toggle() } label: {
+                Button {
+                    Haptics.tap()
+                    revealed.toggle()
+                } label: {
                     Image(systemName: revealed ? "eye.fill" : "eye")
+                        .contentTransition(.symbolEffect(.replace))
                 }
                 .tint(revealed ? Color.actionBlue : Color.secondaryText)
+                .pressable(scale: 0.85)
             }
-            Button { onCopy(field.value) } label: {
+            Button {
+                Haptics.tap()
+                onCopy(field.value)
+            } label: {
                 Image(systemName: "doc.on.doc")
                     .padding(8)
                     .background(Circle().fill(Color.actionBlue.opacity(0.1)))
             }
             .tint(Color.actionBlue)
+            .pressable(scale: 0.85)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

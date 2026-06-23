@@ -3,6 +3,7 @@ import SwiftUI
 struct ItemDetailView: View {
     let item: Item
     @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
     @Environment(ClipboardHolder.self) private var clip
     @Environment(AttachmentHolder.self) private var attachments
     @State private var toast: String?
@@ -28,12 +29,17 @@ struct ItemDetailView: View {
                         .background(item.type.accent.opacity(0.12), in: Capsule())
                         .overlay(Capsule().strokeBorder(item.type.accent.opacity(0.25)))
                         .foregroundStyle(item.type.accent)
-                    Button { try? store.toggleFavorite(item) } label: {
+                    Button {
+                        Haptics.tap()
+                        try? store.toggleFavorite(item)
+                    } label: {
                         Image(systemName: item.isFavorite ? "star.fill" : "star")
                             .font(.system(size: 18))
                             .foregroundStyle(item.isFavorite ? Color.favoriteStar : Color.tertiaryText)
+                            .contentTransition(.symbolEffect(.replace))
+                            .symbolEffect(.bounce, value: item.isFavorite)
                     }
-                    .buttonStyle(.plain)
+                    .pressable(scale: 0.8)
                 }
                 .padding(.top, 9)
 
@@ -84,9 +90,21 @@ struct ItemDetailView: View {
         )
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button { dismiss() } label: {
+                    HStack(spacing: 2) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                        Text("목록").font(.system(size: 16))
+                    }
+                    .foregroundStyle(Color.actionBlue)
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink("편집") { ItemEditView(mode: .edit(item)) }
+                    .tint(Color.actionBlue)
             }
         }
         .toast($toast)

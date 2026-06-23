@@ -141,7 +141,7 @@ struct HomeView: View {
                 HStack(spacing: 12) {
                     ForEach(favorites) { item in
                         NavigationLink { ItemDetailView(item: item) } label: { favCard(item) }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PressableButtonStyle())
                     }
                 }
                 .padding(.horizontal, 22)
@@ -188,7 +188,7 @@ struct HomeView: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableButtonStyle())
 
             if item.isFavorite {
                 Image(systemName: "star.fill")
@@ -197,6 +197,7 @@ struct HomeView: View {
             }
             if let value = quickCopyValue(item) {
                 Button {
+                    Haptics.tap()
                     clip.clipboard.copy(value)
                     toast = "복사됨"
                 } label: {
@@ -206,7 +207,7 @@ struct HomeView: View {
                         .frame(width: 30, height: 30)
                         .background(Color.actionBlue.opacity(0.1), in: Circle())
                 }
-                .buttonStyle(.plain)
+                .pressable(scale: 0.85)
             }
         }
         .padding(.horizontal, 11)
