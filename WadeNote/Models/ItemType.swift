@@ -14,5 +14,5 @@ enum ItemType: String, Codable, CaseIterable, Identifiable {
 }
 
 enum FieldKind: String, Codable {
-    case text, secret, url, date
+    case text, secret, url, date, multiline
 }

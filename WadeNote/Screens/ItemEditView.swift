@@ -37,14 +37,18 @@ struct ItemEditView: View {
                 }
                 Section("필드") {
                     ForEach($draft) { $field in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(field.label)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            if field.kind == .secret {
-                                SecureField(field.label, text: $field.value)
-                            } else {
-                                TextField(field.label, text: $field.value)
+                        if field.kind == .multiline {
+                            multilineField($field)
+                        } else {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(field.label)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                if field.kind == .secret {
+                                    SecureField(field.label, text: $field.value)
+                                } else {
+                                    TextField(field.label, text: $field.value)
+                                }
                             }
                         }
                     }
@@ -69,6 +73,18 @@ struct ItemEditView: View {
             }
             .onAppear(perform: load)
         }
+    }
+
+    @ViewBuilder
+    private func multilineField(_ field: Binding<Field>) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(field.wrappedValue.label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            TextField(field.wrappedValue.label, text: field.value, axis: .vertical)
+                .frame(maxWidth: .infinity, minHeight: 320, alignment: .topLeading)
+        }
+        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
     }
 
     private func load() {

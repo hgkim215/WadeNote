@@ -26,8 +26,7 @@ enum Template {
              .init(label: "만료일", kind: .date),
              .init(label: "메모", kind: .text)]
         case .memo:
-            [.init(label: "제목", kind: .text),
-             .init(label: "본문", kind: .text)]
+            [.init(label: "본문", kind: .multiline)]
         }
     }
 
