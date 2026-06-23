@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & Logic Tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build (iOS Simulator)
+        run: |
+          xcodebuild build \
+            -scheme WadeNote \
+            -destination 'generic/platform=iOS Simulator'
+
+      - name: Logic tests (WadeNoteTests)
+        run: |
+          DEVICE=$(xcrun simctl list devices available \
+            | grep -m1 -oE 'iPhone [0-9][^(]*' | sed 's/ *$//')
+          echo "Using simulator: $DEVICE"
+          xcodebuild test \
+            -scheme WadeNote \
+            -destination "platform=iOS Simulator,name=$DEVICE" \
+            -parallel-testing-enabled NO \
+            -only-testing:WadeNoteTests

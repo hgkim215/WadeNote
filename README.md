@@ -1,6 +1,12 @@
 # WadeNote
 
+[![CI](https://github.com/hgkim215/WadeNote/actions/workflows/ci.yml/badge.svg)](https://github.com/hgkim215/WadeNote/actions/workflows/ci.yml)
+![Platform](https://img.shields.io/badge/platform-iOS%2018%2B-blue)
+![Swift](https://img.shields.io/badge/Swift-6-orange)
+
 민감한 개인정보를 유형별 템플릿으로 구조화 저장하고, Face ID로 잠그며, iCloud(CloudKit)로 모든 기기에 복원하는 iOS 네이티브 앱.
+
+레포: https://github.com/hgkim215/WadeNote
 
 설계·계획 문서는 `docs/superpowers/`에 있습니다.
 
