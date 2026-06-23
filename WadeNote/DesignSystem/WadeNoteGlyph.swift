@@ -30,17 +30,19 @@ struct WadeNoteGlyph: View {
             ctx.fill(rrect(12.6, 12.8, 8.4, 8.4, 2.7), with: .color(Color(hex: "3D74FF")))
             // 잠금 몸통
             ctx.fill(rrect(14.75, 16.75, 4.1, 3.05, 0.7), with: .color(.white))
-            // 잠금 고리 (∩ 형태)
+            // 잠금 고리 (∩ 형태) — 앱 아이콘과 동일한 비율로 몸통에 연결.
+            let sx0 = 15.55, sx1 = 18.05, spring = 15.85, bodyTop = 16.75
+            let cx = (sx0 + sx1) / 2, r = (sx1 - sx0) / 2
             var shackle = Path()
-            shackle.move(to: CGPoint(x: 15.4 * s, y: 16.75 * s))
-            shackle.addLine(to: CGPoint(x: 15.4 * s, y: (16.75 - 1.05) * s))
-            shackle.addArc(center: CGPoint(x: (15.4 + 1.45) * s, y: (16.75 - 1.05) * s),
-                           radius: 1.45 * s,
+            shackle.move(to: CGPoint(x: sx0 * s, y: bodyTop * s))
+            shackle.addLine(to: CGPoint(x: sx0 * s, y: spring * s))
+            shackle.addArc(center: CGPoint(x: cx * s, y: spring * s),
+                           radius: r * s,
                            startAngle: .degrees(180), endAngle: .degrees(360),
                            clockwise: false)
-            shackle.addLine(to: CGPoint(x: (15.4 + 2.9) * s, y: 16.75 * s))
+            shackle.addLine(to: CGPoint(x: sx1 * s, y: bodyTop * s))
             ctx.stroke(shackle, with: .color(.white),
-                       style: StrokeStyle(lineWidth: 0.85 * s, lineCap: .round))
+                       style: StrokeStyle(lineWidth: 0.82 * s, lineCap: .round))
         }
         .aspectRatio(1, contentMode: .fit)
     }
