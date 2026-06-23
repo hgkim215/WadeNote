@@ -8,6 +8,9 @@ import UIKit
 @MainActor @Observable final class LockCoordinator {
     let lock: AppLock
     private var window: UIWindow?
+    /// 동시에 두 개 이상의 생체 인증이 뜨면 iOS가 한쪽을 취소시켜 "시트 없이 멈춤"
+    /// 상태가 된다. 인증을 한 번에 하나만 돌려 이 경쟁 상태를 막는다.
+    private var isAuthenticating = false
 
     init(lock: AppLock = AppLock()) {
         self.lock = lock
@@ -51,7 +54,11 @@ import UIKit
     }
 
     /// Face ID(실패 시 기기 패스코드)로 인증. 성공하면 잠금 윈도우를 내린다.
+    /// 이미 인증 중이면(시트가 떠 있으면) 중복 호출은 무시한다.
     func authenticate() async {
+        guard !isAuthenticating, lock.isLocked else { return }
+        isAuthenticating = true
+        defer { isAuthenticating = false }
         await lock.unlock()
         if !lock.isLocked { dismissWindow() }
     }
