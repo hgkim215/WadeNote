@@ -25,6 +25,9 @@ targets:
           - UIInterfaceOrientationPortrait
         UIBackgroundModes:
           - remote-notification
+        # 표준 암호화(HTTPS·Apple CryptoKit)만 사용 → 수출규정 면제 대상.
+        # 자체/독점 암호화를 추가하면 이 값을 재검토해야 한다.
+        ITSAppUsesNonExemptEncryption: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.wadenote.app
