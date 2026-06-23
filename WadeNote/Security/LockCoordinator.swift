@@ -24,26 +24,11 @@ import UIKit
         showWindow()
     }
 
-    /// 비활성(앱 스위처·제어센터) 진입 시 가림막만 띄운다 — 잠그지 않고 Face ID도
-    /// 요구하지 않는다. 잠깐 제어센터만 내렸다 올린 경우 복귀 시 그냥 막을 내린다.
-    /// 단, 앱 스위처 썸네일에 민감 내용이 캡처되는 것을 막는다.
-    func engageCover() {
-        guard window == nil else { return }   // 이미 잠금/가림 윈도우가 있으면 그대로
-        presentWindow(autoAuthenticate: false)
-    }
-
     /// 잠금 윈도우가 없으면 띄운다(잠금 상태일 때만). 노출 시 자동 인증.
     func showWindow() {
-        guard lock.isLocked, window == nil else { return }
-        presentWindow(autoAuthenticate: true)
-    }
-
-    private func presentWindow(autoAuthenticate: Bool) {
-        guard let scene = activeScene() else { return }
+        guard lock.isLocked, window == nil, let scene = activeScene() else { return }
         let host = UIHostingController(
-            rootView: LockView(autoAuthenticate: autoAuthenticate) { [weak self] in
-                await self?.authenticate()
-            }
+            rootView: LockView { [weak self] in await self?.authenticate() }
         )
         host.view.backgroundColor = .clear
         let w = UIWindow(windowScene: scene)
