@@ -28,3 +28,53 @@ extension View {
         buttonStyle(PressableButtonStyle(scale: scale))
     }
 }
+
+/// 왼쪽으로 스와이프하면 뒤에서 빨간 삭제 버튼이 드러나는 행 래퍼.
+struct SwipeToDelete<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+    var onDelete: () -> Void
+
+    @State private var offset: CGFloat = 0
+    @GestureState private var drag: CGFloat = 0
+    private let reveal: CGFloat = 78
+
+    private var x: CGFloat { min(0, max(-reveal, offset + drag)) }
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            Button {
+                Haptics.tap()
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { offset = 0 }
+                onDelete()
+            } label: {
+                Image(systemName: "trash.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: reveal)
+                    .frame(maxHeight: .infinity)
+                    .background(Color(hex: "FF3B30"))
+            }
+            .buttonStyle(.plain)
+            .opacity(x < -2 ? 1 : 0)
+
+            content()
+                .background(Color.cardSurface)
+                .offset(x: x)
+                .gesture(
+                    DragGesture(minimumDistance: 20)
+                        .updating($drag) { value, state, _ in
+                            if abs(value.translation.width) > abs(value.translation.height) {
+                                state = value.translation.width
+                            }
+                        }
+                        .onEnded { value in
+                            let proposed = offset + value.translation.width
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                                offset = proposed < -reveal / 2 ? -reveal : 0
+                            }
+                        }
+                )
+        }
+        .clipped()
+    }
+}

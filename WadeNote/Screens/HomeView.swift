@@ -14,6 +14,8 @@ struct HomeView: View {
 
     // MARK: Data
 
+    private var store: ItemStore { ItemStore(context: context) }
+
     private var filtered: [Item] {
         let q = search.trimmingCharacters(in: .whitespaces).lowercased()
         guard !q.isEmpty else { return items }
@@ -52,6 +54,8 @@ struct HomeView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+
+
 
 
             .sheet(isPresented: $showingAdd) { ItemEditView(mode: .create) }
@@ -154,13 +158,14 @@ struct HomeView: View {
             sectionHeader(type.displayName)
             VStack(spacing: 0) {
                 ForEach(Array(xs.enumerated()), id: \.element.persistentModelID) { idx, item in
-                    itemRow(item)
+                    SwipeToDelete(content: { itemRow(item) }, onDelete: { delete(item) })
                     if idx < xs.count - 1 {
                         Divider().padding(.leading, 60)
                     }
                 }
             }
-            .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 16))
+            .background(Color.cardSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.cardBorder))
             .shadow(color: Color.cardShadow, radius: 16, x: 0, y: 8)
             .padding(.horizontal, 22)
@@ -291,12 +296,52 @@ struct HomeView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "tray").font(.system(size: 44)).foregroundStyle(Color.secondaryText)
-            Text("첫 정보를 추가해 보세요").font(.system(size: 15)).foregroundStyle(Color.secondaryText)
+        VStack(spacing: 22) {
+            // 유형 타일을 부채꼴로 펼친 일러스트
+            ZStack {
+                ForEach(Array(ItemType.allCases.enumerated()), id: \.offset) { i, type in
+                    TypeTile(type: type, size: 58)
+                        .rotationEffect(.degrees((Double(i) - 1.5) * 8))
+                        .offset(x: (Double(i) - 1.5) * 34, y: abs(Double(i) - 1.5) * 6)
+                }
+            }
+            .frame(height: 90)
+            .padding(.bottom, 4)
+
+            VStack(spacing: 7) {
+                Text("아직 저장된 정보가 없어요")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.primaryText)
+                Text("로그인 · 카드 · 신분증 · 메모를\n안전하게 한곳에 보관하세요")
+                    .font(.system(size: 13.5))
+                    .foregroundStyle(Color.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+            }
+
+            Button {
+                Haptics.tap()
+                showingAdd = true
+            } label: {
+                Label("첫 정보 추가하기", systemImage: "plus")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 13)
+                    .background(ItemType.login.gradient, in: Capsule())
+                    .shadow(color: Color.actionBlue.opacity(0.4), radius: 12, x: 0, y: 6)
+            }
+            .pressable()
+            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 120)
+        .padding(.top, 90)
+        .padding(.horizontal, 40)
+    }
+
+    private func delete(_ item: Item) {
+        Haptics.tap()
+        try? store.delete(item)
     }
 
     private func sectionHeader(_ title: String) -> some View {
