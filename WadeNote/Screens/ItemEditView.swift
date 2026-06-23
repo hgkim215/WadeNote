@@ -37,21 +37,13 @@ struct ItemEditView: View {
                 }
                 Section("필드") {
                     ForEach($draft) { $field in
-                        if field.kind == .multiline {
-                            multilineField($field)
-                        } else {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(field.label)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                if field.kind == .secret {
-                                    SecureField(field.label, text: $field.value)
-                                } else {
-                                    TextField(field.label, text: $field.value)
-                                }
-                            }
-                        }
+                        fieldRow($field)
                     }
+                    Button { addCustomField() } label: {
+                        Label("필드 추가", systemImage: "plus.circle.fill")
+                            .font(.system(size: 15))
+                    }
+                    .tint(Color.actionBlue)
                 }
                 if working != nil {
                     Section("사진") {
@@ -79,6 +71,48 @@ struct ItemEditView: View {
     }
 
     @ViewBuilder
+    private func fieldRow(_ field: Binding<Field>) -> some View {
+        if field.wrappedValue.kind == .multiline {
+            multilineField(field)
+        } else if field.wrappedValue.isCustom {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    TextField("필드 이름", text: field.label)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("값", text: field.value)
+                }
+                Button { removeField(field.wrappedValue) } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .foregroundStyle(Color(hex: "FF3B30"))
+                }
+                .buttonStyle(.plain)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(field.wrappedValue.label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if field.wrappedValue.kind == .secret {
+                    SecureField(field.wrappedValue.label, text: field.value)
+                } else {
+                    TextField(field.wrappedValue.label, text: field.value)
+                }
+            }
+        }
+    }
+
+    private func addCustomField() {
+        let f = Field(label: "", value: "", kind: .text, order: draft.count)
+        f.isCustom = true
+        withAnimation { draft.append(f) }
+    }
+
+    private func removeField(_ field: Field) {
+        withAnimation { draft.removeAll { $0 === field } }
+    }
+
+    @ViewBuilder
     private func multilineField(_ field: Binding<Field>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(field.wrappedValue.label)
@@ -102,18 +136,30 @@ struct ItemEditView: View {
     }
 
     private func commit() {
-        if let item = working {
-            item.title = title
-            item.updatedAt = Date()
-            try? store.save()
+        let item: Item
+        if let existing = working {
+            item = existing
         } else {
-            let item = store.create(type: type, title: title)
-            let sorted = item.orderedFields
-            for (i, field) in draft.enumerated() where i < sorted.count {
-                sorted[i].value = field.value
-            }
-            try? store.save()
+            item = Item(title: title, type: type)
+            context.insert(item)
         }
+        item.title = title
+        item.updatedAt = Date()
+
+        let existingFields = item.fields ?? []
+        // 드래프트에서 빠진(삭제된) 필드 제거
+        for f in existingFields where !draft.contains(where: { $0 === f }) {
+            context.delete(f)
+        }
+        // 새 필드 삽입 + 순서 갱신
+        for (index, f) in draft.enumerated() {
+            f.order = index
+            if f.item == nil {
+                f.item = item
+                context.insert(f)
+            }
+        }
+        try? store.save()
         dismiss()
     }
 

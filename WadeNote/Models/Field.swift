@@ -5,6 +5,7 @@ import SwiftData
     var value: String = ""
     var kindRaw: String = FieldKind.text.rawValue
     var order: Int = 0
+    var isCustom: Bool = false
     var item: Item?
 
     var kind: FieldKind {
