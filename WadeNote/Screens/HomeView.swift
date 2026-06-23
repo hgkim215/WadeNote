@@ -3,12 +3,16 @@ import SwiftData
 
 struct HomeView: View {
     @Environment(\.modelContext) private var context
-    @Query(sort: \Item.updatedAt, order: .reverse) private var items: [Item]
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(ClipboardHolder.self) private var clip
+    @Query(sort: \Item.updatedAt, order: .reverse) private var items: [Item]
     @State private var search = ""
     @State private var showingAdd = false
     @State private var sync = SyncStatusMonitor()
+    @State private var toast: String?
     @AppStorage("didShowADPNotice") private var didShowADPNotice = false
+
+    // MARK: Data
 
     private var filtered: [Item] {
         let q = search.trimmingCharacters(in: .whitespaces).lowercased()
@@ -19,9 +23,7 @@ struct HomeView: View {
             || (item.fields ?? []).contains { $0.label.lowercased().contains(q) }
         }
     }
-
     private var favorites: [Item] { filtered.filter(\.isFavorite) }
-
     private var groups: [(ItemType, [Item])] {
         ItemType.allCases.compactMap { type in
             let xs = filtered.filter { $0.type == type }
@@ -29,91 +31,238 @@ struct HomeView: View {
         }
     }
 
+    // MARK: Body
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                syncBanner
-                if didShowADPNotice == false && sync.status == .synced {
-                    adpNotice
-                }
-                if !favorites.isEmpty {
-                    sectionHeader("즐겨찾기")
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(favorites) { item in
-                                NavigationLink { ItemDetailView(item: item) } label: { favCard(item) }
-                                    .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.horizontal, 22)
-                    }
-                }
-                ForEach(groups, id: \.0) { type, xs in
-                    sectionHeader(type.displayName)
+            ZStack(alignment: .top) {
+                Color.appBackground.ignoresSafeArea()
+                brandGlow
+                ScrollView {
                     VStack(spacing: 0) {
-                        ForEach(xs) { item in
-                            NavigationLink { ItemDetailView(item: item) } label: { row(item) }
-                                .buttonStyle(.plain)
-                        }
+                        header
+                        searchBar
+                        syncAlert
+                        if didShowADPNotice == false && sync.status == .synced { adpNotice }
+                        favoritesSection
+                        groupsSection
+                        if items.isEmpty { emptyState }
                     }
-                    .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 16))
-                    .padding(.horizontal, 22)
-                }
-                if items.isEmpty {
-                    emptyState
+                    .padding(.bottom, 28)
                 }
             }
-            .background(Color.appBackground)
-            .navigationTitle("WadeNote")
-            .searchable(text: $search, prompt: "검색")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingAdd = true } label: { Image(systemName: "plus") }
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
+
             .sheet(isPresented: $showingAdd) { ItemEditView(mode: .create) }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { sync.refresh() }
             }
+            .toast($toast)
         }
     }
 
+    private var brandGlow: some View {
+        RadialGradient(
+            colors: [Color(hex: "7882E6").opacity(0.10), .clear],
+            center: .top, startRadius: 0, endRadius: 380
+        )
+        .frame(height: 320)
+        .frame(maxWidth: .infinity)
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("WadeNote")
+                    .font(.system(size: 33, weight: .bold))
+                    .tracking(-0.6)
+                    .foregroundStyle(Color.primaryText)
+                if sync.status == .synced { syncedPill }
+            }
+            Spacer()
+            Button { showingAdd = true } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 38, height: 38)
+                    .background(ItemType.login.gradient, in: Circle())
+                    .shadow(color: Color.actionBlue.opacity(0.45), radius: 9, x: 0, y: 5)
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.top, 10)
+    }
+
+    private var syncedPill: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "checkmark.icloud.fill")
+                .font(.system(size: 10))
+                .foregroundStyle(Color(hex: "1FB866"))
+            Text("iCloud 동기화됨")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color.secondaryText)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 3)
+        .background(Color.black.opacity(0.04), in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.black.opacity(0.05)))
+    }
+
+    private var searchBar: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Color(hex: "a0a0ac"))
+            TextField("검색", text: $search)
+                .font(.system(size: 15))
+                .tint(Color.actionBlue)
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 40)
+        .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.black.opacity(0.05)))
+        .shadow(color: Color(hex: "141428").opacity(0.04), radius: 2, x: 0, y: 1)
+        .padding(.horizontal, 22)
+        .padding(.top, 16)
+    }
+
+    // MARK: Sections
+
     @ViewBuilder
-    private var syncBanner: some View {
+    private var favoritesSection: some View {
+        if !favorites.isEmpty {
+            sectionHeader("즐겨찾기")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(favorites) { item in
+                        NavigationLink { ItemDetailView(item: item) } label: { favCard(item) }
+                            .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 22)
+            }
+        }
+    }
+
+    private var groupsSection: some View {
+        ForEach(groups, id: \.0) { type, xs in
+            sectionHeader(type.displayName)
+            VStack(spacing: 0) {
+                ForEach(Array(xs.enumerated()), id: \.element.persistentModelID) { idx, item in
+                    itemRow(item)
+                    if idx < xs.count - 1 {
+                        Divider().padding(.leading, 60)
+                    }
+                }
+            }
+            .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.black.opacity(0.04)))
+            .shadow(color: Color(hex: "141428").opacity(0.10), radius: 16, x: 0, y: 8)
+            .padding(.horizontal, 22)
+        }
+    }
+
+    private func itemRow(_ item: Item) -> some View {
+        HStack(spacing: 13) {
+            NavigationLink { ItemDetailView(item: item) } label: {
+                HStack(spacing: 13) {
+                    TypeTile(type: item.type, size: 36)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(item.title)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Color.primaryText)
+                            .lineLimit(1)
+                        if let sub = subtitle(item) {
+                            Text(sub)
+                                .font(.system(size: 12.5))
+                                .foregroundStyle(Color.secondaryText)
+                                .lineLimit(1)
+                        }
+                    }
+                    Spacer(minLength: 4)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if item.isFavorite {
+                Image(systemName: "star.fill")
+                    .foregroundStyle(Color.favoriteStar)
+                    .font(.system(size: 14))
+            }
+            if let value = quickCopyValue(item) {
+                Button {
+                    clip.clipboard.copy(value)
+                    toast = "복사됨"
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.actionBlue)
+                        .frame(width: 30, height: 30)
+                        .background(Color.actionBlue.opacity(0.1), in: Circle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 9)
+    }
+
+    private func favCard(_ item: Item) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TypeTile(type: item.type, size: 32)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(item.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.primaryText)
+                    .lineLimit(1)
+                if let sub = subtitle(item) {
+                    Text(sub)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Color.secondaryText)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(14)
+        .frame(width: 150, alignment: .leading)
+        .background(
+            LinearGradient(colors: [item.type.accent.opacity(0.13), item.type.accent.opacity(0.03)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing),
+            in: RoundedRectangle(cornerRadius: 16)
+        )
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(item.type.accent.opacity(0.18)))
+    }
+
+    // MARK: Sync alert (non-synced states)
+
+    @ViewBuilder
+    private var syncAlert: some View {
         switch sync.status {
         case .synced:
-            statusPill(text: "iCloud 동기화됨", systemImage: "checkmark.icloud.fill",
-                       tint: Color(hex: "1FB866"))
+            EmptyView()
         case .needsLogin:
-            statusBanner(
-                systemImage: "exclamationmark.icloud.fill",
-                tint: Color(hex: "E8A317"),
-                title: "iCloud에 로그인되어 있지 않습니다",
-                subtitle: "동기화가 꺼져 있어 이 기기에만 저장됩니다. 설정 앱 > Apple 계정에 로그인하면 자동으로 동기화됩니다."
-            )
+            statusBanner(systemImage: "exclamationmark.icloud.fill", tint: Color(hex: "E8A317"),
+                         title: "iCloud에 로그인되어 있지 않습니다",
+                         subtitle: "동기화가 꺼져 있어 이 기기에만 저장됩니다. 설정 앱 > Apple 계정에 로그인하면 자동으로 동기화됩니다.")
         case .localOnly:
-            statusBanner(
-                systemImage: "icloud.slash.fill",
-                tint: Color.secondaryText,
-                title: "이 기기에만 저장됨",
-                subtitle: "iCloud 동기화가 꺼져 있어 다른 기기와 공유되지 않습니다. 기기를 바꾸면 이 데이터는 복원되지 않습니다."
-            )
+            statusBanner(systemImage: "icloud.slash.fill", tint: Color.secondaryText,
+                         title: "이 기기에만 저장됨",
+                         subtitle: "iCloud 동기화가 꺼져 있어 다른 기기와 공유되지 않습니다. 기기를 바꾸면 이 데이터는 복원되지 않습니다.")
         }
     }
 
     private func statusBanner(systemImage: String, tint: Color,
                               title: String, subtitle: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: systemImage)
-                .foregroundStyle(tint)
-                .font(.system(size: 18))
+            Image(systemName: systemImage).foregroundStyle(tint).font(.system(size: 18))
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.primaryText)
-                Text(subtitle)
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(Color.secondaryText)
+                Text(title).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.primaryText)
+                Text(subtitle).font(.system(size: 12.5)).foregroundStyle(Color.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -122,18 +271,7 @@ struct HomeView: View {
         .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(tint.opacity(0.3)))
         .padding(.horizontal, 22)
-        .padding(.top, 8)
-    }
-
-    private func statusPill(text: String, systemImage: String, tint: Color) -> some View {
-        HStack {
-            Label(text, systemImage: systemImage)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(tint)
-            Spacer()
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 8)
+        .padding(.top, 14)
     }
 
     private var adpNotice: some View {
@@ -147,17 +285,13 @@ struct HomeView: View {
         .padding(12)
         .background(Color.actionBlue.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
         .padding(.horizontal, 22)
-        .padding(.top, 8)
+        .padding(.top, 12)
     }
 
     private var emptyState: some View {
         VStack(spacing: 12) {
-            Image(systemName: "tray")
-                .font(.system(size: 44))
-                .foregroundStyle(Color.secondaryText)
-            Text("첫 정보를 추가해 보세요")
-                .font(.system(size: 15))
-                .foregroundStyle(Color.secondaryText)
+            Image(systemName: "tray").font(.system(size: 44)).foregroundStyle(Color.secondaryText)
+            Text("첫 정보를 추가해 보세요").font(.system(size: 15)).foregroundStyle(Color.secondaryText)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 120)
@@ -168,50 +302,21 @@ struct HomeView: View {
             Text(title.uppercased())
                 .font(.system(size: 11, weight: .semibold))
                 .tracking(1.4)
-                .foregroundStyle(Color.secondaryText)
+                .foregroundStyle(Color(hex: "a0a0ac"))
             Spacer()
         }
         .padding(.horizontal, 24)
-        .padding(.top, 18)
-        .padding(.bottom, 8)
+        .padding(.top, 20)
+        .padding(.bottom, 10)
     }
 
-    private func row(_ item: Item) -> some View {
-        HStack(spacing: 13) {
-            TypeTile(type: item.type, size: 36)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(item.title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.primaryText)
-                if let sub = item.orderedFields.first(where: { !$0.value.isEmpty && $0.kind != .secret })?.value {
-                    Text(sub)
-                        .font(.system(size: 12.5))
-                        .foregroundStyle(Color.secondaryText)
-                        .lineLimit(1)
-                }
-            }
-            Spacer()
-            if item.isFavorite {
-                Image(systemName: "star.fill")
-                    .foregroundStyle(Color.favoriteStar)
-                    .font(.system(size: 13))
-            }
-        }
-        .padding(.horizontal, 11)
-        .padding(.vertical, 9)
-        .contentShape(Rectangle())
-    }
+    // MARK: Helpers
 
-    private func favCard(_ item: Item) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            TypeTile(type: item.type, size: 32)
-            Text(item.title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color.primaryText)
-                .lineLimit(1)
-        }
-        .padding(14)
-        .frame(width: 150, alignment: .leading)
-        .background(item.type.accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+    private func subtitle(_ item: Item) -> String? {
+        item.orderedFields.first(where: { !$0.value.isEmpty && $0.kind != .secret })?.value
+    }
+    private func quickCopyValue(_ item: Item) -> String? {
+        let nonEmpty = item.orderedFields.filter { !$0.value.isEmpty }
+        return nonEmpty.first(where: { $0.kind == .secret })?.value ?? nonEmpty.first?.value
     }
 }

@@ -30,11 +30,11 @@ struct WadeNoteApp: App {
     /// CloudKit 컨테이너를 만들면 미러링이 런타임에 크래시하므로 기본값은 로컬 저장소다.
     static func makeContainerWithFallback() -> ModelContainer {
         #if WADENOTE_CLOUDKIT
-        // iCloud 계정이 로그인돼 있을 때만 CloudKit을 시도한다. 계정이 없으면
-        // NSCloudKitMirroringDelegate가 134400("no iCloud account") 에러 루프를
-        // 돌므로, 계정 없을 땐 조용히 로컬 저장소를 쓴다(데이터는 안전, 동기화만 비활성).
-        if FileManager.default.ubiquityIdentityToken != nil,
-           let cloud = try? makeContainer(inMemory: false) {
+        // CloudKit private DB로 동기화. NSPersistentCloudKitContainer는 계정이 없어도
+        // 크래시하지 않고 로컬로 동작하다가 계정이 생기면 동기화를 시작한다.
+        // (이전에는 ubiquityIdentityToken으로 게이트했으나, 그 토큰은 iCloud Drive
+        //  활성화 여부라서 Drive가 꺼진 계정에서 CloudKit을 잘못 차단했다.)
+        if let cloud = try? makeContainer(inMemory: false) {
             return cloud
         }
         #endif
