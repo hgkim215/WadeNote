@@ -65,6 +65,9 @@ struct ItemEditView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
+            .tint(Color.actionBlue)
             .navigationTitle(isCreate ? "추가" : "편집")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

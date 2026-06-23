@@ -30,10 +30,11 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.wadenote.app
         INFOPLIST_KEY_CFBundleDisplayName: WadeNote
         CODE_SIGN_ENTITLEMENTS: WadeNote/WadeNote.entitlements
-        # CloudKit을 켜려면: 본인 개발팀 ID를 지정하고 아래 플래그를 활성화한 뒤
-        # iCloud > CloudKit capability와 iCloud.com.wadenote.app 컨테이너를 등록한다.
+        # CloudKit 동기화 활성화됨. 실기기 동기화를 위해서는 본인 개발팀 ID가 필요하다:
+        # 아래 줄의 주석을 풀고 Team ID를 넣거나, Xcode > Signing & Capabilities에서
+        # Automatically manage signing + 팀을 선택한다(가이드: docs/cloudkit-setup.md).
         # DEVELOPMENT_TEAM: "YOUR_TEAM_ID"
-        # SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WADENOTE_CLOUDKIT"
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WADENOTE_CLOUDKIT"
   WadeNoteTests:
     type: bundle.unit-test
     platform: iOS

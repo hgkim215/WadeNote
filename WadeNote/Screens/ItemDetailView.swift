@@ -13,22 +13,27 @@ struct ItemDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                TypeTile(type: item.type, size: 72).padding(.top, 10)
+                TypeTile(type: item.type, size: 72)
+                    .shadow(color: item.type.accent.opacity(0.4), radius: 14, x: 0, y: 8)
+                    .padding(.top, 12)
                 Text(item.title)
                     .font(.system(size: 25, weight: .bold))
                     .foregroundStyle(Color.primaryText)
-                    .padding(.top, 14)
+                    .padding(.top, 16)
                 HStack(spacing: 8) {
                     Text(item.type.displayName)
                         .font(.system(size: 13, weight: .semibold))
                         .padding(.horizontal, 13)
                         .padding(.vertical, 5)
                         .background(item.type.accent.opacity(0.12), in: Capsule())
+                        .overlay(Capsule().strokeBorder(item.type.accent.opacity(0.25)))
                         .foregroundStyle(item.type.accent)
                     Button { try? store.toggleFavorite(item) } label: {
                         Image(systemName: item.isFavorite ? "star.fill" : "star")
-                            .foregroundStyle(item.isFavorite ? Color.favoriteStar : Color.secondaryText)
+                            .font(.system(size: 18))
+                            .foregroundStyle(item.isFavorite ? Color.favoriteStar : Color(hex: "c4c4cc"))
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.top, 9)
 
@@ -45,8 +50,10 @@ struct ItemDetailView: View {
                     }
                 }
                 .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.black.opacity(0.04)))
+                .shadow(color: Color(hex: "141428").opacity(0.10), radius: 16, x: 0, y: 8)
                 .padding(.horizontal, 22)
-                .padding(.top, 20)
+                .padding(.top, 22)
 
                 if !item.attachmentIDs.isEmpty {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 90))], spacing: 10) {
@@ -65,8 +72,16 @@ struct ItemDetailView: View {
                     .padding(.top, 16)
                 }
             }
+            .padding(.bottom, 24)
         }
-        .background(Color.appBackground)
+        .background(
+            ZStack(alignment: .top) {
+                Color.appBackground
+                RadialGradient(colors: [Color.actionBlue.opacity(0.10), .clear],
+                               center: .top, startRadius: 0, endRadius: 360)
+                    .frame(height: 300)
+            }.ignoresSafeArea()
+        )
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
