@@ -10,7 +10,9 @@ import Testing
 
 @Test func cardTemplateMarksSecrets() {
     let specs = Template.fields(for: .card)
-    #expect(specs.first { $0.label == "CVC" }?.kind == .secret)
+    let cvc = specs.first { $0.label == "CVC" }
+    #expect(cvc?.kind == .secretNumber)
+    #expect(cvc?.kind.isMasked == true)
     #expect(specs.map(\.label).contains("유효기간"))
 }
 

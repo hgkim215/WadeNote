@@ -5,7 +5,7 @@ struct FieldRow: View {
     var onCopy: (String) -> Void
     @State private var revealed = false
 
-    private var isSecret: Bool { field.kind == .secret }
+    private var isSecret: Bool { field.isMasked }
 
     private var display: String {
         guard isSecret, !revealed else { return field.value }

@@ -13,6 +13,9 @@ import SwiftData
         set { kindRaw = newValue.rawValue }
     }
 
+    /// 가려서 표시(•••• + 눈 토글)해야 하는 필드인지.
+    var isMasked: Bool { kind.isMasked }
+
     init(label: String, value: String, kind: FieldKind, order: Int) {
         self.label = label
         self.value = value

@@ -88,17 +88,41 @@ struct ItemEditView: View {
                 }
                 .buttonStyle(.plain)
             }
+        } else if field.wrappedValue.kind == .date {
+            DateFieldEditor(label: field.wrappedValue.label, value: field.value)
         } else {
             VStack(alignment: .leading, spacing: 2) {
                 Text(field.wrappedValue.label)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                if field.wrappedValue.kind == .secret {
-                    SecureField(field.wrappedValue.label, text: field.value)
-                } else {
-                    TextField(field.wrappedValue.label, text: field.value)
-                }
+                inputField(field)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func inputField(_ field: Binding<Field>) -> some View {
+        let kind = field.wrappedValue.kind
+        let style = inputStyle(for: kind)
+        Group {
+            if field.wrappedValue.isMasked {
+                SecureField(field.wrappedValue.label, text: field.value)
+            } else {
+                TextField(field.wrappedValue.label, text: field.value)
+            }
+        }
+        .keyboardType(style.keyboard)
+        .textInputAutocapitalization(style.autocap)
+        .autocorrectionDisabled(style.disableAutocorrect)
+    }
+
+    private func inputStyle(for kind: FieldKind) -> (keyboard: UIKeyboardType, autocap: TextInputAutocapitalization, disableAutocorrect: Bool) {
+        switch kind {
+        case .email: (.emailAddress, .never, true)
+        case .url: (.URL, .never, true)
+        case .number, .secretNumber: (.numberPad, .never, true)
+        case .secret: (.default, .never, true)
+        default: (.default, .sentences, false)
         }
     }
 
@@ -168,5 +192,51 @@ struct ItemEditView: View {
               let id = try? attachments.store.save(data) else { return }
         working?.attachmentIDs.append(id)
         try? store.save()
+    }
+}
+
+/// 날짜 필드 — 값은 "yyyy-MM-dd" 문자열로 저장하고 캘린더 선택기를 보여준다.
+private struct DateFieldEditor: View {
+    let label: String
+    @Binding var value: String
+    @State private var date = Date()
+    @State private var isSet = false
+
+    private let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 16))
+                .foregroundStyle(Color.primaryText)
+            Spacer()
+            if isSet {
+                Button {
+                    isSet = false
+                    value = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(Color.tertiaryText)
+                }
+                .buttonStyle(.plain)
+            }
+            DatePicker("", selection: $date, displayedComponents: .date)
+                .labelsHidden()
+                .opacity(isSet ? 1 : 0.45)
+                .onChange(of: date) { _, newDate in
+                    isSet = true
+                    value = formatter.string(from: newDate)
+                }
+        }
+        .onAppear {
+            if let parsed = formatter.date(from: value) {
+                date = parsed
+                isSet = true
+            }
+        }
     }
 }

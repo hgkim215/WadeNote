@@ -360,10 +360,10 @@ struct HomeView: View {
     // MARK: Helpers
 
     private func subtitle(_ item: Item) -> String? {
-        item.orderedFields.first(where: { !$0.value.isEmpty && $0.kind != .secret })?.value
+        item.orderedFields.first(where: { !$0.value.isEmpty && !$0.isMasked })?.value
     }
     private func quickCopyValue(_ item: Item) -> String? {
         let nonEmpty = item.orderedFields.filter { !$0.value.isEmpty }
-        return nonEmpty.first(where: { $0.kind == .secret })?.value ?? nonEmpty.first?.value
+        return nonEmpty.first(where: { $0.isMasked })?.value ?? nonEmpty.first?.value
     }
 }
