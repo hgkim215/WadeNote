@@ -19,6 +19,7 @@ struct ItemEditView: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var attachmentIDs: [String] = []
     @State private var originalAttachmentIDs: [String] = []
+    @State private var isAttaching = false
 
     private var store: ItemStore { ItemStore(context: context) }
     private var isCreate: Bool { if case .create = mode { true } else { false } }
@@ -48,20 +49,30 @@ struct ItemEditView: View {
                     .tint(Color.actionBlue)
                 }
                 Section("사진") {
-                    if !attachmentIDs.isEmpty {
+                    if !attachmentIDs.isEmpty || isAttaching {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 10) {
                                 ForEach(attachmentIDs, id: \.self) { id in
                                     attachmentThumb(id)
                                 }
+                                if isAttaching { uploadingThumb }
                             }
                             .padding(.vertical, 4)
                         }
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     }
                     PhotosPicker(selection: $pickerItem, matching: .images) {
-                        Label("사진 추가", systemImage: "photo")
+                        if isAttaching {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                Text("사진 추가 중…").foregroundStyle(Color.secondaryText)
+                            }
+                            .font(.system(size: 15))
+                        } else {
+                            Label("사진 추가", systemImage: "photo")
+                        }
                     }
+                    .disabled(isAttaching)
                     .onChange(of: pickerItem) { _, newItem in
                         guard let newItem else { return }
                         Task { await attach(newItem) }
@@ -195,6 +206,15 @@ struct ItemEditView: View {
         withAnimation { attachmentIDs.removeAll { $0 == id } }
     }
 
+    /// 첨부 처리 중 보여줄 자리표시 썸네일(스피너).
+    private var uploadingThumb: some View {
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(Color.secondaryText.opacity(0.12))
+            .frame(width: 76, height: 76)
+            .overlay { ProgressView() }
+            .transition(.opacity)
+    }
+
     /// 취소 시 이번 편집에서 새로 추가한 사진 파일만 정리한다(기존 사진은 보존).
     private func cancelEdit() {
         for id in attachmentIDs where !originalAttachmentIDs.contains(id) {
@@ -237,9 +257,11 @@ struct ItemEditView: View {
     }
 
     private func attach(_ pickerItem: PhotosPickerItem) async {
+        withAnimation { isAttaching = true }
+        defer { withAnimation { isAttaching = false } }
         guard let data = try? await pickerItem.loadTransferable(type: Data.self),
               let id = try? attachments.store.save(data) else { return }
-        attachmentIDs.append(id)
+        withAnimation { attachmentIDs.append(id) }
     }
 }
 
