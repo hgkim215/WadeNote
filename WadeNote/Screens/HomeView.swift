@@ -299,10 +299,11 @@ struct HomeView: View {
         VStack(spacing: 22) {
             // 유형 타일을 부채꼴로 펼친 일러스트
             ZStack {
+                let mid = Double(ItemType.allCases.count - 1) / 2  // 4개→1.5, 5개→2.0
                 ForEach(Array(ItemType.allCases.enumerated()), id: \.offset) { i, type in
                     TypeTile(type: type, size: 58)
-                        .rotationEffect(.degrees((Double(i) - 1.5) * 8))
-                        .offset(x: (Double(i) - 1.5) * 34, y: abs(Double(i) - 1.5) * 6)
+                        .rotationEffect(.degrees((Double(i) - mid) * 8))
+                        .offset(x: (Double(i) - mid) * 34, y: abs(Double(i) - mid) * 6)
                 }
             }
             .frame(height: 90)
@@ -312,7 +313,7 @@ struct HomeView: View {
                 Text("아직 저장된 정보가 없어요")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(Color.primaryText)
-                Text("로그인 · 카드 · 신분증 · 메모를\n안전하게 한곳에 보관하세요")
+                Text("로그인 · 카드 · 신분증 · API 키 · 메모를\n안전하게 한곳에 보관하세요")
                     .font(.system(size: 13.5))
                     .foregroundStyle(Color.secondaryText)
                     .multilineTextAlignment(.center)
