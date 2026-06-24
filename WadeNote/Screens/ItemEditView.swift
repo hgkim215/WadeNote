@@ -24,6 +24,10 @@ struct ItemEditView: View {
     private var store: ItemStore { ItemStore(context: context) }
     private var isCreate: Bool { if case .create = mode { true } else { false } }
 
+    private var canSave: Bool {
+        Template.requiredFieldsSatisfied(draft)
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -38,7 +42,7 @@ struct ItemEditView: View {
                 Section("제목") {
                     TextField("제목", text: $title)
                 }
-                Section("필드") {
+                Section {
                     ForEach($draft) { $field in
                         fieldRow($field)
                     }
@@ -47,6 +51,13 @@ struct ItemEditView: View {
                             .font(.system(size: 15))
                     }
                     .tint(Color.actionBlue)
+                } header: {
+                    Text("필드")
+                } footer: {
+                    if !canSave {
+                        Text("필수 필드를 모두 입력해야 저장할 수 있어요")
+                            .foregroundStyle(Color(hex: "FF3B30"))
+                    }
                 }
                 Section("사진") {
                     if !attachmentIDs.isEmpty || isAttaching {
@@ -87,10 +98,15 @@ struct ItemEditView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { cancelEdit() } }
-                ToolbarItem(placement: .confirmationAction) { Button("저장") { commit() } }
+                ToolbarItem(placement: .confirmationAction) { Button("저장") { commit() }.disabled(!canSave) }
             }
             .onAppear(perform: load)
         }
+    }
+
+    /// 비커스텀 선택 필드는 라벨에 " (선택)" 을 덧붙여 보여준다.
+    private func displayLabel(for field: Field) -> String {
+        (!field.isCustom && !field.isRequired) ? "\(field.label) (선택)" : field.label
     }
 
     @ViewBuilder
@@ -112,10 +128,10 @@ struct ItemEditView: View {
                 .buttonStyle(.plain)
             }
         } else if field.wrappedValue.kind == .date {
-            DateFieldEditor(label: field.wrappedValue.label, value: field.value)
+            DateFieldEditor(label: displayLabel(for: field.wrappedValue), value: field.value)
         } else {
             VStack(alignment: .leading, spacing: 2) {
-                Text(field.wrappedValue.label)
+                Text(displayLabel(for: field.wrappedValue))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 inputField(field)
@@ -160,7 +176,7 @@ struct ItemEditView: View {
     @ViewBuilder
     private func multilineField(_ field: Binding<Field>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(field.wrappedValue.label)
+            Text(displayLabel(for: field.wrappedValue))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             TextField(field.wrappedValue.label, text: field.value, axis: .vertical)
