@@ -1,5 +1,5 @@
 enum ItemType: String, Codable, CaseIterable, Identifiable {
-    case login, card, identity, memo
+    case login, card, identity, apiKey, memo
 
     var id: String { rawValue }
 
@@ -8,6 +8,7 @@ enum ItemType: String, Codable, CaseIterable, Identifiable {
         case .login: "로그인"
         case .card: "카드·은행"
         case .identity: "신분증"
+        case .apiKey: "API 키 · 토큰"
         case .memo: "보안 메모"
         }
     }

@@ -28,3 +28,26 @@ import Testing
     }
     #expect(ItemType.login.accentHex == "2D5BFF")
 }
+
+@Test func apiKeyTemplateHasExpectedFields() {
+    let labels = Template.fields(for: .apiKey).map(\.label)
+    #expect(labels == ["서비스·용도", "API 키", "시크릿·토큰", "엔드포인트 URL", "발급일", "만료일", "메모"])
+}
+
+@Test func apiKeyMasksKeyAndToken() {
+    let specs = Template.fields(for: .apiKey)
+    #expect(specs.first { $0.label == "API 키" }?.kind == .secret)
+    #expect(specs.first { $0.label == "시크릿·토큰" }?.kind == .secret)
+    #expect(specs.first { $0.label == "엔드포인트 URL" }?.kind == .url)
+    #expect(specs.first { $0.label == "발급일" }?.kind == .date)
+}
+
+@Test func apiKeyHasTealThemeAndKeyIcon() {
+    #expect(ItemType.apiKey.accentHex == "0FA99D")
+    #expect(ItemType.apiKey.gradientHex == ("2FD4C6", "0FA99D"))
+    #expect(ItemType.apiKey.symbolName == "key.fill")
+}
+
+@Test func itemTypeOrderPlacesApiKeyBetweenIdentityAndMemo() {
+    #expect(ItemType.allCases.map(\.rawValue) == ["login", "card", "identity", "apiKey", "memo"])
+}

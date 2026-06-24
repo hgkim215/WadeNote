@@ -25,6 +25,14 @@ enum Template {
              .init(label: "발급일", kind: .date),
              .init(label: "만료일", kind: .date),
              .init(label: "메모", kind: .text)]
+        case .apiKey:
+            [.init(label: "서비스·용도", kind: .text),
+             .init(label: "API 키", kind: .secret),
+             .init(label: "시크릿·토큰", kind: .secret),
+             .init(label: "엔드포인트 URL", kind: .url),
+             .init(label: "발급일", kind: .date),
+             .init(label: "만료일", kind: .date),
+             .init(label: "메모", kind: .text)]
         case .memo:
             [.init(label: "본문", kind: .multiline)]
         }
