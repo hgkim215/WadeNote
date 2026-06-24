@@ -72,8 +72,11 @@ struct ItemEditView: View {
                         }
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     }
+                    // 로컬 Bool 로 캡처: PhotosPicker label 클로저는 Sendable 로 취급되어
+                    // 메인액터 격리된 @State 를 직접 참조하면 Swift 6 모드에서 컴파일 에러가 난다.
+                    let attaching = isAttaching
                     PhotosPicker(selection: $pickerItem, matching: .images) {
-                        if isAttaching {
+                        if attaching {
                             HStack(spacing: 8) {
                                 ProgressView()
                                 Text("사진 추가 중…").foregroundStyle(Color.secondaryText)
