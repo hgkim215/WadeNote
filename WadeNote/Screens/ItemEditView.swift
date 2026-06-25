@@ -20,6 +20,11 @@ struct ItemEditView: View {
     @State private var attachmentIDs: [String] = []
     @State private var originalAttachmentIDs: [String] = []
     @State private var isAttaching = false
+    @State private var captureEngine = SmartCaptureEngine.makeIfAvailable()
+    @State private var isAnalyzing = false
+    @State private var needsReview: Set<String> = []
+    @State private var photoCaptureItem: PhotosPickerItem?
+    @State private var captureToast: String?
 
     private var store: ItemStore { ItemStore(context: context) }
     private var isCreate: Bool { if case .create = mode { true } else { false } }
@@ -37,6 +42,44 @@ struct ItemEditView: View {
                     }
                     .onChange(of: type) { _, newType in
                         if working == nil { draft = Template.makeFields(for: newType) }
+                    }
+                }
+                if isCreate, let engine = captureEngine {
+                    Section {
+                        if isAnalyzing {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                Text("캡쳐 분석 중…").foregroundStyle(Color.secondaryText)
+                            }
+                            .font(.system(size: 15))
+                        } else {
+                            Button {
+                                if let image = UIPasteboard.general.image,
+                                   let data = image.jpegData(compressionQuality: 0.9) {
+                                    runSmartCapture(data, engine: engine)
+                                } else {
+                                    captureToast = "클립보드에 이미지가 없어요"
+                                }
+                            } label: {
+                                Label("붙여넣기로 채우기", systemImage: "doc.on.clipboard")
+                            }
+                            PhotosPicker(selection: $photoCaptureItem, matching: .images) {
+                                Label("사진첩에서 캡처 채우기", systemImage: "photo.on.rectangle")
+                            }
+                        }
+                    } header: {
+                        Text("스마트 캡처")
+                    } footer: {
+                        Text("캡처를 넣으면 '\(type.displayName)' 칸을 자동으로 채워요. 값은 기기에서만 처리됩니다.")
+                    }
+                    .onChange(of: photoCaptureItem) { _, item in
+                        guard let item else { return }
+                        Task {
+                            if let data = try? await item.loadTransferable(type: Data.self) {
+                                runSmartCapture(data, engine: engine)
+                            }
+                            photoCaptureItem = nil
+                        }
                     }
                 }
                 Section("제목") {
@@ -103,6 +146,21 @@ struct ItemEditView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { cancelEdit() } }
                 ToolbarItem(placement: .confirmationAction) { Button("저장") { commit() }.disabled(!canSave) }
             }
+            .overlay(alignment: .bottom) {
+                if let toast = captureToast {
+                    Text(toast)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16).padding(.vertical, 10)
+                        .background(.black.opacity(0.8), in: Capsule())
+                        .padding(.bottom, 24)
+                        .transition(.opacity)
+                        .task(id: toast) {
+                            try? await Task.sleep(for: .seconds(2))
+                            captureToast = nil
+                        }
+                }
+            }
             .onAppear(perform: load)
         }
     }
@@ -134,10 +192,22 @@ struct ItemEditView: View {
             DateFieldEditor(label: displayLabel(for: field.wrappedValue), value: field.value)
         } else {
             VStack(alignment: .leading, spacing: 2) {
-                Text(displayLabel(for: field.wrappedValue))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text(displayLabel(for: field.wrappedValue))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if needsReview.contains(field.wrappedValue.label) {
+                        Text("확인 필요")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color(hex: "0C8E84"))
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Color(hex: "0FA99D").opacity(0.13), in: Capsule())
+                    }
+                }
                 inputField(field)
+            }
+            .onChange(of: field.wrappedValue.value) { _, _ in
+                needsReview.remove(field.wrappedValue.label)
             }
         }
     }
@@ -240,6 +310,19 @@ struct ItemEditView: View {
             try? attachments.store.delete(id: id)
         }
         dismiss()
+    }
+
+    /// 캡처 데이터로 추출을 돌려 draft 를 채우고, 채워진 칸을 "확인 필요"로 표시한다.
+    private func runSmartCapture(_ imageData: Data, engine: SmartCaptureEngine) {
+        Task {
+            isAnalyzing = true
+            defer { isAnalyzing = false }
+            let result = (try? await engine.fill(imageData: imageData, type: type))
+                ?? ExtractionResult(values: [:])
+            let filled = applyExtraction(result, to: draft)
+            needsReview = Set(filled)
+            captureToast = filled.isEmpty ? "텍스트를 찾지 못했어요" : "\(filled.count)개 항목을 채웠어요 · 확인해 주세요"
+        }
     }
 
     private func commit() {
