@@ -21,6 +21,7 @@ targets:
       properties:
         UILaunchScreen: {}
         NSFaceIDUsageDescription: "WadeNote 잠금 해제에 Face ID를 사용합니다."
+        NSCameraUsageDescription: "캡처를 촬영해 정보를 자동으로 채우는 데 카메라를 사용합니다."
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIBackgroundModes:

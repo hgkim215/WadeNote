@@ -25,6 +25,7 @@ struct ItemEditView: View {
     @State private var needsReview: Set<String> = []
     @State private var photoCaptureItem: PhotosPickerItem?
     @State private var captureToast: String?
+    @State private var showingCamera = false
 
     private var store: ItemStore { ItemStore(context: context) }
     private var isCreate: Bool { if case .create = mode { true } else { false } }
@@ -66,6 +67,13 @@ struct ItemEditView: View {
                             PhotosPicker(selection: $photoCaptureItem, matching: .images) {
                                 Label("사진첩에서 캡처 채우기", systemImage: "photo.on.rectangle")
                             }
+                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                                Button {
+                                    showingCamera = true
+                                } label: {
+                                    Label("카메라로 촬영해 채우기", systemImage: "camera")
+                                }
+                            }
                         }
                     } header: {
                         Text("스마트 캡처")
@@ -80,6 +88,12 @@ struct ItemEditView: View {
                             }
                             photoCaptureItem = nil
                         }
+                    }
+                    .sheet(isPresented: $showingCamera) {
+                        CameraPicker { data in
+                            if let engine = captureEngine { runSmartCapture(data, engine: engine) }
+                        }
+                        .ignoresSafeArea()
                     }
                 }
                 Section("제목") {
