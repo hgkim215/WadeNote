@@ -20,6 +20,9 @@ targets:
       path: WadeNote/Info.plist
       properties:
         UILaunchScreen: {}
+        # xcodegen 재생성 시 버전이 1.0 으로 초기화되지 않도록 여기서 고정한다.
+        CFBundleShortVersionString: "1.2.0"
+        CFBundleVersion: "1"
         NSFaceIDUsageDescription: "WadeNote 잠금 해제에 Face ID를 사용합니다."
         NSCameraUsageDescription: "캡처를 촬영해 정보를 자동으로 채우는 데 카메라를 사용합니다."
         UISupportedInterfaceOrientations:
