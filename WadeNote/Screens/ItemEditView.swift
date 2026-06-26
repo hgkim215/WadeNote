@@ -8,6 +8,8 @@ enum EditMode {
 
 struct ItemEditView: View {
     let mode: EditMode
+    /// 생성 모드에서 진입 시 미리 선택된 유형(유형 선택 시트에서 전달).
+    var initialType: ItemType = .login
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Environment(AttachmentHolder.self) private var attachments
@@ -348,6 +350,7 @@ struct ItemEditView: View {
             attachmentIDs = item.attachmentIDs
             originalAttachmentIDs = item.attachmentIDs
         } else if draft.isEmpty {
+            type = initialType
             draft = Template.makeFields(for: type)
         }
     }

@@ -8,6 +8,8 @@ struct HomeView: View {
     @Query(sort: \Item.updatedAt, order: .reverse) private var items: [Item]
     @State private var search = ""
     @State private var showingAdd = false
+    @State private var pendingType: ItemType?
+    @State private var addType: ItemType?
     @State private var sync = SyncStatusMonitor()
     @State private var toast: String?
     @AppStorage("didShowADPNotice") private var didShowADPNotice = false
@@ -57,7 +59,19 @@ struct HomeView: View {
 
 
 
-            .sheet(isPresented: $showingAdd) { ItemEditView(mode: .create) }
+            .sheet(isPresented: $showingAdd, onDismiss: {
+                // 유형 시트가 완전히 닫힌 뒤 입력 화면을 띄운다(시트 연쇄 안전).
+                if let pendingType { addType = pendingType }
+                pendingType = nil
+            }) {
+                TypeSelectionSheet { type in
+                    pendingType = type
+                    showingAdd = false
+                }
+            }
+            .sheet(item: $addType) { type in
+                ItemEditView(mode: .create, initialType: type)
+            }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { sync.refresh() }
             }
