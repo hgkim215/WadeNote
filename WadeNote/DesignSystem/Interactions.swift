@@ -30,47 +30,65 @@ extension View {
 }
 
 /// 왼쪽으로 스와이프하면 뒤에서 빨간 삭제 버튼이 드러나는 행 래퍼.
+/// 손가락을 직접 따라가고(단일 상태), 속도 기반 스냅 + 경계 탄성 + 버튼 페이드로 자연스럽게.
 struct SwipeToDelete<Content: View>: View {
     @ViewBuilder var content: () -> Content
     var onDelete: () -> Void
 
     @State private var offset: CGFloat = 0
-    @GestureState private var drag: CGFloat = 0
-    private let reveal: CGFloat = 78
+    @State private var startOffset: CGFloat = 0
+    /// 이번 제스처가 가로 스와이프인지(세로 스크롤이면 무시). 제스처 끝나면 nil.
+    @State private var horizontal: Bool?
 
-    private var x: CGFloat { min(0, max(-reveal, offset + drag)) }
+    private let reveal: CGFloat = 78
+    /// 드러난 정도 0…1 (버튼 페이드·스케일용).
+    private var progress: CGFloat { min(1, max(0, -offset / reveal)) }
 
     var body: some View {
         ZStack(alignment: .trailing) {
             Button {
                 Haptics.tap()
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { offset = 0 }
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) { offset = 0 }
                 onDelete()
             } label: {
                 Image(systemName: "trash.fill")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
+                    .scaleEffect(0.7 + 0.3 * progress)
                     .frame(width: reveal)
                     .frame(maxHeight: .infinity)
                     .background(Color(hex: "FF3B30"))
             }
             .buttonStyle(.plain)
-            .opacity(x < -2 ? 1 : 0)
+            .opacity(Double(progress))
+            .allowsHitTesting(offset < -2)
 
             content()
                 .background(Color.cardSurface)
-                .offset(x: x)
+                .offset(x: offset)
                 .gesture(
-                    DragGesture(minimumDistance: 20)
-                        .updating($drag) { value, state, _ in
-                            if abs(value.translation.width) > abs(value.translation.height) {
-                                state = value.translation.width
+                    DragGesture(minimumDistance: 12)
+                        .onChanged { value in
+                            if horizontal == nil {
+                                horizontal = abs(value.translation.width) > abs(value.translation.height)
+                                startOffset = offset
                             }
+                            guard horizontal == true else { return }
+                            var next = startOffset + value.translation.width
+                            // 경계 밖은 탄성(저항)
+                            if next > 0 { next /= 3 }
+                            if next < -reveal { next = -reveal + (next + reveal) / 3 }
+                            offset = next
                         }
                         .onEnded { value in
-                            let proposed = offset + value.translation.width
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
-                                offset = proposed < -reveal / 2 ? -reveal : 0
+                            defer { horizontal = nil }
+                            guard horizontal == true else { return }
+                            // 속도(플릭)까지 반영해 스냅 목표 결정
+                            let predicted = startOffset + value.predictedEndTranslation.width
+                            let target: CGFloat = predicted < -reveal / 2 ? -reveal : 0
+                            if target != 0 && offset > -reveal + 1 { Haptics.tap() }
+                            withAnimation(.spring(response: 0.33, dampingFraction: 0.8)) {
+                                offset = target
                             }
                         }
                 )
