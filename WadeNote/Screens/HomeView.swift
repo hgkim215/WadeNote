@@ -38,8 +38,6 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                Color.appBackground.ignoresSafeArea()
-                brandGlow
                 ScrollView {
                     VStack(spacing: 0) {
                         header
@@ -53,6 +51,7 @@ struct HomeView: View {
                     .padding(.bottom, 28)
                 }
             }
+            .brandGlow()
             .toolbar(.hidden, for: .navigationBar)
 
 
@@ -64,17 +63,6 @@ struct HomeView: View {
             }
             .toast($toast)
         }
-    }
-
-    private var brandGlow: some View {
-        RadialGradient(
-            colors: [Color(hex: "7882E6").opacity(0.10), .clear],
-            center: .top, startRadius: 0, endRadius: 380
-        )
-        .frame(height: 320)
-        .frame(maxWidth: .infinity)
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
     }
 
     // MARK: Header
@@ -92,10 +80,9 @@ struct HomeView: View {
             Button { showingAdd = true } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.actionBlue)
                     .frame(width: 38, height: 38)
-                    .background(ItemType.login.gradient, in: Circle())
-                    .shadow(color: Color.actionBlue.opacity(0.45), radius: 9, x: 0, y: 5)
+                    .glassEffect(.regular.tint(Color.actionBlue).interactive(), in: Circle())
             }
         }
         .padding(.horizontal, 22)
@@ -128,9 +115,7 @@ struct HomeView: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 40)
-        .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.cardBorder))
-        .shadow(color: Color.cardShadow, radius: 3, x: 0, y: 1)
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
         .padding(.horizontal, 22)
         .padding(.top, 16)
     }
@@ -164,10 +149,7 @@ struct HomeView: View {
                     }
                 }
             }
-            .background(Color.cardSurface)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.cardBorder))
-            .shadow(color: Color.cardShadow, radius: 16, x: 0, y: 8)
+            .glassEffect(.regular, in: .rect(cornerRadius: 16))
             .padding(.horizontal, 22)
         }
     }
@@ -326,11 +308,10 @@ struct HomeView: View {
             } label: {
                 Label("첫 정보 추가하기", systemImage: "plus")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.actionBlue)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 13)
-                    .background(ItemType.login.gradient, in: Capsule())
-                    .shadow(color: Color.actionBlue.opacity(0.4), radius: 12, x: 0, y: 6)
+                    .glassEffect(.regular.tint(Color.actionBlue).interactive(), in: Capsule())
             }
             .pressable()
             .padding(.top, 4)
