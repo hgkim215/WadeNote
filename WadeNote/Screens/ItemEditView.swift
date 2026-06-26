@@ -53,10 +53,11 @@ struct ItemEditView: View {
                                 ScanningView(image: img, accent: type.accent)
                             } else {
                                 GlassCard(cornerRadius: 18) {
-                                    VStack(alignment: .leading, spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 2) {
                                         Text("캡쳐로 한 번에 채우세요")
                                             .font(.system(size: 16, weight: .semibold))
                                             .foregroundStyle(Color.primaryText)
+                                            .padding(.bottom, 8)
                                         Button {
                                             if let image = UIPasteboard.general.image,
                                                let data = image.jpegData(compressionQuality: 0.9) {
@@ -65,21 +66,23 @@ struct ItemEditView: View {
                                                 captureToast = "클립보드에 이미지가 없어요"
                                             }
                                         } label: {
-                                            Label("붙여넣기로 채우기", systemImage: "doc.on.clipboard")
+                                            CaptureSourceRow(title: "붙여넣기로 채우기", subtitle: "클립보드 이미지", systemImage: "doc.on.clipboard", accent: type.accent)
                                         }
+                                        Divider()
                                         PhotosPicker(selection: $photoCaptureItem, matching: .images) {
-                                            Label("사진첩에서 캡처 채우기", systemImage: "photo.on.rectangle")
+                                            CaptureSourceRow(title: "사진첩에서 채우기", subtitle: "앨범에서 선택", systemImage: "photo.on.rectangle", accent: type.accent)
                                         }
                                         if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                                            Divider()
                                             Button { showingCamera = true } label: {
-                                                Label("카메라로 촬영해 채우기", systemImage: "camera")
+                                                CaptureSourceRow(title: "카메라로 촬영", subtitle: "바로 찍어서", systemImage: "camera", accent: type.accent)
                                             }
                                         }
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(16)
                                 }
-                                .tint(Color.actionBlue)
+                                .buttonStyle(.plain)
                             }
                         }
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -393,6 +396,38 @@ struct ItemEditView: View {
         guard let data = try? await pickerItem.loadTransferable(type: Data.self),
               let id = try? attachments.store.save(data) else { return }
         withAnimation { attachmentIDs.append(id) }
+    }
+}
+
+/// 스마트 캡처 소스 행: 유형색 틴트 아이콘 + 제목 + 부제 + 화살표.
+private struct CaptureSourceRow: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let accent: Color
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(accent)
+                .frame(width: 38, height: 38)
+                .background(accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.primaryText)
+                Text(subtitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.secondaryText)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.tertiaryText)
+        }
+        .contentShape(Rectangle())
+        .padding(.vertical, 7)
     }
 }
 
