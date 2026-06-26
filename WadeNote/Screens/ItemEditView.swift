@@ -26,6 +26,8 @@ struct ItemEditView: View {
     @State private var needsReview: Set<String> = []
     @State private var photoCaptureItem: PhotosPickerItem?
     @State private var captureToast: String?
+    @State private var showPhotoPicker = false
+    @State private var captureSourcePickerShown = false
     @State private var showingCamera = false
 
     private var store: ItemStore { ItemStore(context: context) }
@@ -53,11 +55,23 @@ struct ItemEditView: View {
                                 ScanningView(image: img, accent: type.accent)
                             } else {
                                 GlassCard(cornerRadius: 18) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("캡쳐로 한 번에 채우세요")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .foregroundStyle(Color.primaryText)
-                                            .padding(.bottom, 8)
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        // 헤더: 스캔으로 채우기 + 배지
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "viewfinder")
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .foregroundStyle(Color.secondaryText)
+                                            Text("스캔으로 채우기")
+                                                .font(.system(size: 15, weight: .semibold))
+                                                .foregroundStyle(Color.primaryText)
+                                            Spacer()
+                                            Text("필드 자동 입력")
+                                                .font(.system(size: 11, weight: .semibold))
+                                                .foregroundStyle(type.accent)
+                                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                                .background(type.accent.opacity(0.14), in: Capsule())
+                                        }
+                                        // 히어로: 클립보드 붙여넣기
                                         Button {
                                             if let image = UIPasteboard.general.image,
                                                let data = image.jpegData(compressionQuality: 0.9) {
@@ -66,23 +80,58 @@ struct ItemEditView: View {
                                                 captureToast = "클립보드에 이미지가 없어요"
                                             }
                                         } label: {
-                                            CaptureSourceRow(title: "붙여넣기로 채우기", subtitle: "클립보드 이미지", systemImage: "doc.on.clipboard", accent: type.accent)
+                                            HStack(spacing: 12) {
+                                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                    .fill(Color.secondaryText.opacity(0.14))
+                                                    .frame(width: 46, height: 46)
+                                                    .overlay {
+                                                        Image(systemName: "doc.text.image")
+                                                            .font(.system(size: 18))
+                                                            .foregroundStyle(Color.secondaryText)
+                                                    }
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text("복사한 스크린샷")
+                                                        .font(.system(size: 14, weight: .semibold))
+                                                        .foregroundStyle(Color.primaryText)
+                                                    Text("클립보드에서 붙여넣기")
+                                                        .font(.system(size: 12))
+                                                        .foregroundStyle(Color.secondaryText)
+                                                }
+                                                Spacer()
+                                                Text("붙여넣기")
+                                                    .font(.system(size: 13, weight: .semibold))
+                                                    .foregroundStyle(.white)
+                                                    .padding(.horizontal, 14).padding(.vertical, 8)
+                                                    .background(type.accent, in: Capsule())
+                                            }
+                                            .padding(10)
+                                            .background(Color.primaryText.opacity(0.04),
+                                                        in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                         }
-                                        Divider()
-                                        PhotosPicker(selection: $photoCaptureItem, matching: .images) {
-                                            CaptureSourceRow(title: "사진첩에서 채우기", subtitle: "앨범에서 선택", systemImage: "photo.on.rectangle", accent: type.accent)
+                                        .buttonStyle(.plain)
+                                        // 보조: 사진첩 · 카메라
+                                        Button { captureSourcePickerShown = true } label: {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "photo.on.rectangle")
+                                                    .font(.system(size: 13))
+                                                Text("사진첩·카메라에서 선택")
+                                                    .font(.system(size: 13, weight: .medium))
+                                            }
+                                            .foregroundStyle(type.accent)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 2)
                                         }
-                                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                                            Divider()
-                                            Button { showingCamera = true } label: {
-                                                CaptureSourceRow(title: "카메라로 촬영", subtitle: "바로 찍어서", systemImage: "camera", accent: type.accent)
+                                        .buttonStyle(.plain)
+                                        .confirmationDialog("캡처 선택", isPresented: $captureSourcePickerShown, titleVisibility: .hidden) {
+                                            Button("사진첩에서 선택") { showPhotoPicker = true }
+                                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                                                Button("카메라로 촬영") { showingCamera = true }
                                             }
                                         }
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(16)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -107,6 +156,7 @@ struct ItemEditView: View {
                         }
                         .ignoresSafeArea()
                     }
+                    .photosPicker(isPresented: $showPhotoPicker, selection: $photoCaptureItem, matching: .images)
                 }
                 Section("제목") {
                     TextField("제목", text: $title)
@@ -396,38 +446,6 @@ struct ItemEditView: View {
         guard let data = try? await pickerItem.loadTransferable(type: Data.self),
               let id = try? attachments.store.save(data) else { return }
         withAnimation { attachmentIDs.append(id) }
-    }
-}
-
-/// 스마트 캡처 소스 행: 유형색 틴트 아이콘 + 제목 + 부제 + 화살표.
-private struct CaptureSourceRow: View {
-    let title: String
-    let subtitle: String
-    let systemImage: String
-    let accent: Color
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(accent)
-                .frame(width: 38, height: 38)
-                .background(accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.primaryText)
-                Text(subtitle)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.secondaryText)
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.tertiaryText)
-        }
-        .contentShape(Rectangle())
-        .padding(.vertical, 7)
     }
 }
 
