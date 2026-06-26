@@ -4,6 +4,7 @@ import SwiftUI
 struct TypeSelectionSheet: View {
     var onSelect: (ItemType) -> Void
 
+    @State private var contentHeight: CGFloat = 0
     private let columns = [GridItem(.flexible(), spacing: 12),
                            GridItem(.flexible(), spacing: 12)]
 
@@ -40,9 +41,10 @@ struct TypeSelectionSheet: View {
             .glassEffect(.regular, in: .rect(cornerRadius: 14))
         }
         .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         .brandGlow()
-        .presentationDetents([.fraction(0.62), .large])
+        .presentationDetents(contentHeight > 0 ? [.height(contentHeight)] : [.medium])
         .presentationDragIndicator(.visible)
     }
 
