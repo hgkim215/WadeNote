@@ -158,7 +158,12 @@ struct ItemEditView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { cancelEdit() } }
-                ToolbarItem(placement: .confirmationAction) { Button("저장") { commit() }.disabled(!canSave) }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") { commit() }
+                        .buttonStyle(.glassProminent)
+                        .tint(Color.actionBlue)
+                        .disabled(!canSave)
+                }
             }
             .overlay(alignment: .bottom) {
                 if let toast = captureToast {
