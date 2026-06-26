@@ -29,7 +29,6 @@ struct ItemEditView: View {
     @State private var photoCaptureItem: PhotosPickerItem?
     @State private var captureToast: String?
     @State private var showPhotoPicker = false
-    @State private var captureSourcePickerShown = false
     @State private var clipboardHasImage = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var showingCamera = false
@@ -66,7 +65,7 @@ struct ItemEditView: View {
                                 ScanningView(image: img, accent: type.accent)
                             } else {
                                 GlassCard(cornerRadius: 18) {
-                                    VStack(alignment: .leading, spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 9) {
                                         // 헤더: 스캔으로 채우기 + 배지
                                         HStack(spacing: 6) {
                                             Image(systemName: "viewfinder")
@@ -95,7 +94,7 @@ struct ItemEditView: View {
                                             HStack(spacing: 12) {
                                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                                                     .fill(Color.secondaryText.opacity(0.14))
-                                                    .frame(width: 46, height: 46)
+                                                    .frame(width: 40, height: 40)
                                                     .overlay {
                                                         Image(systemName: clipboardHasImage ? "doc.text.image" : "doc.on.clipboard")
                                                             .font(.system(size: 18))
@@ -118,15 +117,25 @@ struct ItemEditView: View {
                                                         .background(type.accent, in: Capsule())
                                                 }
                                             }
-                                            .padding(10)
+                                            .padding(8)
                                             .background(Color.primaryText.opacity(0.04),
                                                         in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                             .opacity(clipboardHasImage ? 1 : 0.65)
                                         }
                                         .buttonStyle(.plain)
                                         .disabled(!clipboardHasImage)
-                                        // 보조: 사진첩 · 카메라
-                                        Button { captureSourcePickerShown = true } label: {
+                                        // 보조: 사진첩 · 카메라 (Menu — 시트 안 confirmationDialog 가 부모 시트를
+                                        // 닫아버리는 버그를 피한다)
+                                        Menu {
+                                            Button { showPhotoPicker = true } label: {
+                                                Label("사진첩에서 선택", systemImage: "photo")
+                                            }
+                                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                                                Button { showingCamera = true } label: {
+                                                    Label("카메라로 촬영", systemImage: "camera")
+                                                }
+                                            }
+                                        } label: {
                                             HStack(spacing: 6) {
                                                 Image(systemName: "photo.on.rectangle")
                                                     .font(.system(size: 13))
@@ -138,35 +147,22 @@ struct ItemEditView: View {
                                             .padding(.vertical, 2)
                                         }
                                         .buttonStyle(.plain)
-                                        .confirmationDialog("캡처 선택", isPresented: $captureSourcePickerShown, titleVisibility: .hidden) {
-                                            Button("사진첩에서 선택") { showPhotoPicker = true }
-                                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                                                Button("카메라로 촬영") { showingCamera = true }
-                                            }
-                                        }
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(16)
+                                    .padding(13)
                                 }
                             }
                         }
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .listRowBackground(Color.clear)
-                    } header: {
-                        Text("스마트 캡처")
                     } footer: {
-                        VStack(spacing: 8) {
-                            HStack(spacing: 10) {
-                                Rectangle().fill(Color.tertiaryText.opacity(0.3)).frame(height: 0.5)
-                                Text("또는 아래에서 직접 입력")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(Color.tertiaryText)
-                                    .fixedSize()
-                                Rectangle().fill(Color.tertiaryText.opacity(0.3)).frame(height: 0.5)
-                            }
-                            Text("값은 기기에서만 처리돼요")
-                                .font(.system(size: 11))
+                        HStack(spacing: 10) {
+                            Rectangle().fill(Color.tertiaryText.opacity(0.3)).frame(height: 0.5)
+                            Text("또는 아래에서 직접 입력")
+                                .font(.system(size: 12))
                                 .foregroundStyle(Color.tertiaryText)
+                                .fixedSize()
+                            Rectangle().fill(Color.tertiaryText.opacity(0.3)).frame(height: 0.5)
                         }
                         .padding(.top, 6)
                         .frame(maxWidth: .infinity)
