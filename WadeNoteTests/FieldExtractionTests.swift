@@ -34,3 +34,21 @@ import Testing
     #expect(p.contains("비밀번호"))
     #expect(p.contains("a@b.com"))
 }
+
+@Test func promptGivesPerFieldGuidance() {
+    let p = buildExtractionPrompt(text: "x", type: .login, labels: ["아이디", "비밀번호", "URL"])
+    #expect(p.contains("이메일"))   // 아이디(email) 안내
+    #expect(p.contains("비밀값"))   // 비밀번호(secret) 안내
+    #expect(p.contains("웹 주소"))  // URL 안내
+}
+
+@Test func promptInstructsDateFormat() {
+    let labels = Template.fields(for: .apiKey).map(\.label)   // 발급일·만료일(date) 포함
+    let p = buildExtractionPrompt(text: "발급 2024-01-02", type: .apiKey, labels: labels)
+    #expect(p.contains("yyyy-MM-dd"))
+}
+
+@Test func promptIncludesTypeName() {
+    let p = buildExtractionPrompt(text: "x", type: .card, labels: ["번호"])
+    #expect(p.contains("카드·은행"))   // type.displayName 으로 맥락 제공
+}
