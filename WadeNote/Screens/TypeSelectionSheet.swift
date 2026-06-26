@@ -42,10 +42,22 @@ struct TypeSelectionSheet: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
-        .brandGlow()
+        // 내용 높이 + 하단 안전영역(홈 인디케이터)까지 합쳐 측정 → 잘림 없이 딱 맞는다.
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.height + proxy.safeAreaInsets.bottom
+        } action: { contentHeight = $0 }
+        // 내용 높이에 딱 맞는 단일 detent → 하단 여백 없음, 늘려지지도 않음.
         .presentationDetents(contentHeight > 0 ? [.height(contentHeight)] : [.medium])
         .presentationDragIndicator(.visible)
+        // 시트 자체 배경으로 채워 어떤 크기에도 색이 깨지지 않게(브랜드 글로우 포함).
+        .presentationBackground {
+            ZStack {
+                Color.appBackground
+                RadialGradient(colors: [Color.actionBlue.opacity(0.10), .clear],
+                               center: .top, startRadius: 0, endRadius: 540)
+            }
+            .ignoresSafeArea()
+        }
     }
 
     private func tile(_ type: ItemType) -> some View {
