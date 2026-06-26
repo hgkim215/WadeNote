@@ -8,12 +8,13 @@ struct BrandGlowBackground: ViewModifier {
         content.background(
             ZStack {
                 Color.appBackground
+                // 부드러운 falloff: 중간 스톱을 두고 화면 밖까지 늘려 경계 띠가 안 보이게.
                 RadialGradient(
-                    colors: [accent.opacity(0.16), .clear],
-                    center: .top, startRadius: 0, endRadius: 380
+                    colors: [accent.opacity(0.10), accent.opacity(0.03), .clear],
+                    center: .top, startRadius: 0, endRadius: 720
                 )
-                .ignoresSafeArea()
             }
+            .ignoresSafeArea()
         )
     }
 }
