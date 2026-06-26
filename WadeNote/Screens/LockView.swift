@@ -33,36 +33,39 @@ struct LockView: View {
                     }
                 }
                 Spacer()
-                VStack(spacing: 20) {
-                    VStack(spacing: 12) {
-                        Button { Task { await onUnlock() } } label: {
-                            Image(systemName: "faceid")
-                                .font(.system(size: 30))
+                GlassCard(cornerRadius: 24) {
+                    VStack(spacing: 20) {
+                        VStack(spacing: 12) {
+                            Button { Task { await onUnlock() } } label: {
+                                Image(systemName: "faceid")
+                                    .font(.system(size: 30))
+                                    .foregroundStyle(Color.actionBlue)
+                                    .frame(width: 60, height: 60)
+                                    .background(Color.actionBlue.opacity(0.1), in: Circle())
+                                    .overlay(Circle().strokeBorder(Color.actionBlue.opacity(0.22)))
+                            }
+                            .buttonStyle(.plain)
+                            Text("Face ID로 잠금 해제")
+                                .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(Color.actionBlue)
-                                .frame(width: 60, height: 60)
-                                .background(Color.actionBlue.opacity(0.1), in: Circle())
-                                .overlay(Circle().strokeBorder(Color.actionBlue.opacity(0.22)))
+                            Text("기기를 바라보면 자동으로 열려요")
+                                .font(.system(size: 12.5))
+                                .foregroundStyle(Color.tertiaryText)
+                        }
+                        Button { Task { await onUnlock() } } label: {
+                            Text("패스코드 입력")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Color.actionBlue)
+                                .padding(.horizontal, 22)
+                                .padding(.vertical, 11)
+                                .background(Color.actionBlue.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
                         }
                         .buttonStyle(.plain)
-                        Text("Face ID로 잠금 해제")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Color.actionBlue)
-                        Text("기기를 바라보면 자동으로 열려요")
-                            .font(.system(size: 12.5))
-                            .foregroundStyle(Color.tertiaryText)
                     }
-                    Button { Task { await onUnlock() } } label: {
-                        Text("패스코드 입력")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(Color.actionBlue)
-                            .padding(.horizontal, 22)
-                            .padding(.vertical, 11)
-                            .background(Color.cardSurface, in: RoundedRectangle(cornerRadius: 14))
-                            .shadow(color: Color.cardShadow, radius: 4, x: 0, y: 2)
-                            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.cardBorder))
-                    }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 28)
                 }
+                .padding(.horizontal, 40)
                 .padding(.bottom, 46)
             }
         }
