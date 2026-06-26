@@ -80,9 +80,10 @@ struct HomeView: View {
             Button { showingAdd = true } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Color.actionBlue)
+                    .foregroundStyle(.white)
                     .frame(width: 38, height: 38)
-                    .glassEffect(.regular.tint(Color.actionBlue).interactive(), in: Circle())
+                    .background(ItemType.login.gradient, in: Circle())
+                    .shadow(color: Color.actionBlue.opacity(0.35), radius: 8, x: 0, y: 4)
             }
         }
         .padding(.horizontal, 22)
@@ -308,10 +309,11 @@ struct HomeView: View {
             } label: {
                 Label("첫 정보 추가하기", systemImage: "plus")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.actionBlue)
+                    .foregroundStyle(.white)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 13)
-                    .glassEffect(.regular.tint(Color.actionBlue).interactive(), in: Capsule())
+                    .background(ItemType.login.gradient, in: Capsule())
+                    .shadow(color: Color.actionBlue.opacity(0.35), radius: 12, x: 0, y: 6)
             }
             .pressable()
             .padding(.top, 4)
