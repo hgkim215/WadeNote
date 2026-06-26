@@ -22,6 +22,7 @@ struct ItemEditView: View {
     @State private var isAttaching = false
     @State private var captureEngine = SmartCaptureEngine.makeIfAvailable()
     @State private var isAnalyzing = false
+    @State private var analyzingImage: UIImage?
     @State private var needsReview: Set<String> = []
     @State private var photoCaptureItem: PhotosPickerItem?
     @State private var captureToast: String?
@@ -47,34 +48,42 @@ struct ItemEditView: View {
                 }
                 if isCreate, let engine = captureEngine {
                     Section {
-                        if isAnalyzing {
-                            HStack(spacing: 10) {
-                                ProgressView()
-                                Text("캡쳐 분석 중…").foregroundStyle(Color.secondaryText)
-                            }
-                            .font(.system(size: 15))
-                        } else {
-                            Button {
-                                if let image = UIPasteboard.general.image,
-                                   let data = image.jpegData(compressionQuality: 0.9) {
-                                    runSmartCapture(data, engine: engine)
-                                } else {
-                                    captureToast = "클립보드에 이미지가 없어요"
+                        Group {
+                            if let img = analyzingImage {
+                                ScanningView(image: img, accent: type.accent)
+                            } else {
+                                GlassCard(cornerRadius: 18) {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        Text("캡쳐로 한 번에 채우세요")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(Color.primaryText)
+                                        Button {
+                                            if let image = UIPasteboard.general.image,
+                                               let data = image.jpegData(compressionQuality: 0.9) {
+                                                runSmartCapture(data, engine: engine)
+                                            } else {
+                                                captureToast = "클립보드에 이미지가 없어요"
+                                            }
+                                        } label: {
+                                            Label("붙여넣기로 채우기", systemImage: "doc.on.clipboard")
+                                        }
+                                        PhotosPicker(selection: $photoCaptureItem, matching: .images) {
+                                            Label("사진첩에서 캡처 채우기", systemImage: "photo.on.rectangle")
+                                        }
+                                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                                            Button { showingCamera = true } label: {
+                                                Label("카메라로 촬영해 채우기", systemImage: "camera")
+                                            }
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(16)
                                 }
-                            } label: {
-                                Label("붙여넣기로 채우기", systemImage: "doc.on.clipboard")
-                            }
-                            PhotosPicker(selection: $photoCaptureItem, matching: .images) {
-                                Label("사진첩에서 캡처 채우기", systemImage: "photo.on.rectangle")
-                            }
-                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                                Button {
-                                    showingCamera = true
-                                } label: {
-                                    Label("카메라로 촬영해 채우기", systemImage: "camera")
-                                }
+                                .tint(Color.actionBlue)
                             }
                         }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowBackground(Color.clear)
                     } header: {
                         Text("스마트 캡처")
                     } footer: {
@@ -335,7 +344,8 @@ struct ItemEditView: View {
     private func runSmartCapture(_ imageData: Data, engine: SmartCaptureEngine) {
         Task {
             isAnalyzing = true
-            defer { isAnalyzing = false }
+            analyzingImage = UIImage(data: imageData)
+            defer { isAnalyzing = false; analyzingImage = nil }
             let result = (try? await engine.fill(imageData: imageData, type: type))
                 ?? ExtractionResult(values: [:])
             let filled = applyExtraction(result, to: draft)
