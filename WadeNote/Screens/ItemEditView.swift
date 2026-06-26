@@ -30,6 +30,8 @@ struct ItemEditView: View {
     @State private var captureToast: String?
     @State private var showPhotoPicker = false
     @State private var captureSourcePickerShown = false
+    @State private var clipboardHasImage = false
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showingCamera = false
 
     private var store: ItemStore { ItemStore(context: context) }
@@ -43,11 +45,18 @@ struct ItemEditView: View {
         NavigationStack {
             Form {
                 if isCreate {
-                    Picker("유형", selection: $type) {
-                        ForEach(ItemType.allCases) { Text($0.displayName).tag($0) }
-                    }
-                    .onChange(of: type) { _, newType in
-                        if working == nil { draft = Template.makeFields(for: newType) }
+                    // 유형은 선택 시트에서 이미 골랐으므로, 드롭다운 대신 히어로로 보여준다.
+                    Section {
+                        VStack(spacing: 8) {
+                            TypeTile(type: type, size: 72)
+                                .shadow(color: type.accent.opacity(0.35), radius: 12, x: 0, y: 6)
+                            Text("\(type.displayName) 유형")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Color.secondaryText)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                        .listRowBackground(Color.clear)
                     }
                 }
                 if isCreate, let engine = captureEngine {
@@ -73,13 +82,14 @@ struct ItemEditView: View {
                                                 .padding(.horizontal, 8).padding(.vertical, 3)
                                                 .background(type.accent.opacity(0.14), in: Capsule())
                                         }
-                                        // 히어로: 클립보드 붙여넣기
+                                        // 히어로: 클립보드 붙여넣기 (복사된 캡처 유무에 따라 다르게)
                                         Button {
                                             if let image = UIPasteboard.general.image,
                                                let data = image.jpegData(compressionQuality: 0.9) {
                                                 runSmartCapture(data, engine: engine)
                                             } else {
-                                                captureToast = "클립보드에 이미지가 없어요"
+                                                clipboardHasImage = false
+                                                captureToast = "클립보드에 복사된 캡처가 없어요"
                                             }
                                         } label: {
                                             HStack(spacing: 12) {
@@ -87,30 +97,34 @@ struct ItemEditView: View {
                                                     .fill(Color.secondaryText.opacity(0.14))
                                                     .frame(width: 46, height: 46)
                                                     .overlay {
-                                                        Image(systemName: "doc.text.image")
+                                                        Image(systemName: clipboardHasImage ? "doc.text.image" : "doc.on.clipboard")
                                                             .font(.system(size: 18))
                                                             .foregroundStyle(Color.secondaryText)
                                                     }
                                                 VStack(alignment: .leading, spacing: 2) {
-                                                    Text("복사한 스크린샷")
+                                                    Text(clipboardHasImage ? "복사한 스크린샷" : "복사한 캡처가 없어요")
                                                         .font(.system(size: 14, weight: .semibold))
                                                         .foregroundStyle(Color.primaryText)
-                                                    Text("클립보드에서 붙여넣기")
+                                                    Text(clipboardHasImage ? "클립보드에서 붙여넣기" : "스크린샷을 복사한 뒤 붙여넣어요")
                                                         .font(.system(size: 12))
                                                         .foregroundStyle(Color.secondaryText)
                                                 }
                                                 Spacer()
-                                                Text("붙여넣기")
-                                                    .font(.system(size: 13, weight: .semibold))
-                                                    .foregroundStyle(.white)
-                                                    .padding(.horizontal, 14).padding(.vertical, 8)
-                                                    .background(type.accent, in: Capsule())
+                                                if clipboardHasImage {
+                                                    Text("붙여넣기")
+                                                        .font(.system(size: 13, weight: .semibold))
+                                                        .foregroundStyle(.white)
+                                                        .padding(.horizontal, 14).padding(.vertical, 8)
+                                                        .background(type.accent, in: Capsule())
+                                                }
                                             }
                                             .padding(10)
                                             .background(Color.primaryText.opacity(0.04),
                                                         in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                            .opacity(clipboardHasImage ? 1 : 0.65)
                                         }
                                         .buttonStyle(.plain)
+                                        .disabled(!clipboardHasImage)
                                         // 보조: 사진첩 · 카메라
                                         Button { captureSourcePickerShown = true } label: {
                                             HStack(spacing: 6) {
@@ -141,7 +155,21 @@ struct ItemEditView: View {
                     } header: {
                         Text("스마트 캡처")
                     } footer: {
-                        Text("캡처를 넣으면 '\(type.displayName)' 칸을 자동으로 채워요. 값은 기기에서만 처리됩니다.")
+                        VStack(spacing: 8) {
+                            HStack(spacing: 10) {
+                                Rectangle().fill(Color.tertiaryText.opacity(0.3)).frame(height: 0.5)
+                                Text("또는 아래에서 직접 입력")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color.tertiaryText)
+                                    .fixedSize()
+                                Rectangle().fill(Color.tertiaryText.opacity(0.3)).frame(height: 0.5)
+                            }
+                            Text("값은 기기에서만 처리돼요")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.tertiaryText)
+                        }
+                        .padding(.top, 6)
+                        .frame(maxWidth: .infinity)
                     }
                     .onChange(of: photoCaptureItem) { _, item in
                         guard let item else { return }
@@ -218,7 +246,7 @@ struct ItemEditView: View {
             .brandGlow(type.accent)
             .tint(Color.actionBlue)
             .dismissKeyboardOnTap()
-            .navigationTitle(isCreate ? "추가" : "편집")
+            .navigationTitle(isCreate ? "새 \(type.displayName)" : "편집")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { cancelEdit() } }
@@ -244,7 +272,10 @@ struct ItemEditView: View {
                         }
                 }
             }
-            .onAppear(perform: load)
+            .onAppear { load(); clipboardHasImage = UIPasteboard.general.hasImages }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { clipboardHasImage = UIPasteboard.general.hasImages }
+            }
         }
     }
 
