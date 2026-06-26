@@ -167,22 +167,6 @@ struct ItemEditView: View {
                         .padding(.top, 6)
                         .frame(maxWidth: .infinity)
                     }
-                    .onChange(of: photoCaptureItem) { _, item in
-                        guard let item else { return }
-                        Task {
-                            if let data = try? await item.loadTransferable(type: Data.self) {
-                                runSmartCapture(data, engine: engine)
-                            }
-                            photoCaptureItem = nil
-                        }
-                    }
-                    .sheet(isPresented: $showingCamera) {
-                        CameraPicker { data in
-                            if let engine = captureEngine { runSmartCapture(data, engine: engine) }
-                        }
-                        .ignoresSafeArea()
-                    }
-                    .photosPicker(isPresented: $showPhotoPicker, selection: $photoCaptureItem, matching: .images)
                 }
                 Section("제목") {
                     TextField("제목", text: $title)
@@ -271,6 +255,24 @@ struct ItemEditView: View {
             .onAppear { load(); clipboardHasImage = UIPasteboard.general.hasImages }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { clipboardHasImage = UIPasteboard.general.hasImages }
+            }
+            // 캡처 소스 프레젠테이션은 조건부 섹션이 아니라 안정적인 루트에 둔다
+            // (섹션 안에 두면 최초 1회 피커가 떴다가 바로 닫히는 레이스가 발생).
+            .photosPicker(isPresented: $showPhotoPicker, selection: $photoCaptureItem, matching: .images)
+            .sheet(isPresented: $showingCamera) {
+                CameraPicker { data in
+                    if let engine = captureEngine { runSmartCapture(data, engine: engine) }
+                }
+                .ignoresSafeArea()
+            }
+            .onChange(of: photoCaptureItem) { _, item in
+                guard let item, let engine = captureEngine else { photoCaptureItem = nil; return }
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self) {
+                        runSmartCapture(data, engine: engine)
+                    }
+                    photoCaptureItem = nil
+                }
             }
         }
     }
