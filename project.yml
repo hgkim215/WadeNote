@@ -2,14 +2,14 @@ name: WadeNote
 options:
   bundleIdPrefix: com.wadenote
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "26.0"
   createIntermediateGroups: true
 settings:
   base:
     SWIFT_VERSION: "6.0"
     CODE_SIGN_IDENTITY: "-"
     CODE_SIGNING_REQUIRED: "NO"
-    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
 targets:
   WadeNote:
     type: application
@@ -55,7 +55,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.wadenote.tests
-        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "26.0"
         GENERATE_INFOPLIST_FILE: "YES"
   WadeNoteStoreTests:
     type: bundle.unit-test
@@ -67,7 +67,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.wadenote.storetests
-        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "26.0"
         GENERATE_INFOPLIST_FILE: "YES"
 schemes:
   WadeNote:
