@@ -151,7 +151,7 @@ struct ItemEditView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(Color.appBackground)
+            .brandGlow(type.accent)
             .tint(Color.actionBlue)
             .dismissKeyboardOnTap()
             .navigationTitle(isCreate ? "추가" : "편집")
